@@ -17,6 +17,7 @@
     let coverImg = "";
 
     async function fetchImages() {
+        let results = [];
         try {
             // 1. Fetch Manga Info for Navigation and Cover
             const mangaApiUrl = `https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mangaSlug}/`;
@@ -38,29 +39,41 @@
                     }
                 }
 
-                // 2. Fetch Chapter Images
+                // 2. Fetch Chapter Images via API
                 const chInfo = chapters[idx];
                 if (chInfo) {
                     const imgRes = await fetch(`https://utoon.net/wp-json/icmadara/v1/capitulo/${chInfo.id_capitulo}/`);
                     const imgData = await imgRes.json();
                     const raw = imgData.imagenes || imgData.images || [];
-                    return raw.map(i => typeof i === 'string' ? i : i.src).filter(Boolean);
+                    results = raw.map(i => typeof i === 'string' ? i : i.src).filter(Boolean);
                 }
             }
         } catch (e) { console.error("API Fetch Failed", e); }
 
-        // Fallback: DOM Scrape
-        return Array.from(document.querySelectorAll('img.wp-manga-chapter-img'))
-            .map(i => i.src || i.dataset.src)
-            .filter(s => s && s.includes('wp-content/uploads'));
+        // 3. Fallback: DOM Scrape
+        if (results.length === 0) {
+            results = Array.from(document.querySelectorAll('img.wp-manga-chapter-img'))
+                .map(i => i.src || i.dataset.src)
+                .filter(s => s && s.includes('wp-content/uploads'));
+        }
+
+        // 4. Ultimate Fallback: Brute Force Guessing
+        if (results.length === 0) {
+            console.log("Using Brute-Force Fallback...");
+            const baseUrl = "https://utoon.net/wp-content/uploads/WP-manga/data";
+            for (let i = 1; i <= 200; i++) {
+                const n = i.toString().padStart(2, '0');
+                results.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.jpg`);
+                results.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.webp`);
+                results.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.png`);
+            }
+        }
+
+        return results;
     }
 
     const imageUrls = await fetchImages();
-    if (!imageUrls || imageUrls.length === 0) {
-        console.error("No images found.");
-        // If we failed but we are on a reader page, maybe show error
-        return;
-    }
+    if (!imageUrls || imageUrls.length === 0) return;
 
     const usage = await new Promise(res => chrome.runtime.sendMessage({action: "check_limit"}, res));
 
@@ -86,7 +99,7 @@
             <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; background: linear-gradient(to bottom, #0a0514, #130a2a); transition: 0.8s; background-size: cover; background-position: center; background-attachment: fixed;"></div>
             <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; overflow:hidden;"></div>
 
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); border-bottom: 2px solid #7c3aed; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); padding: 8px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; flex-wrap: wrap; justify-content: center; align-items:center; gap: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); border-bottom: 2px solid #7c3aed; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); z-index: 10000001; display: flex; flex-wrap: wrap; justify-content: center; align-items:center; gap: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
 
                 <div style="display:flex; gap:5px;">
                     <button id="nav-prev-h" class="u-nav-btn">Back</button>
@@ -103,7 +116,9 @@
                         <option value="manga">Manga Cover</option>
                         <option value="royal">Royal Wine</option>
                         <option value="frost">Frost</option>
+                        <option value="custom">Custom UI</option>
                     </select>
+                    <input type="file" id="u-bg-upload" accept="image/*" style="display:none;">
                 </div>
 
                 <div class="u-control-group">
@@ -118,6 +133,7 @@
                         <option value="sakura">Sakura 🌸</option>
                         <option value="matrix">Matrix 🟢</option>
                         <option value="action">Action 🔥</option>
+                        <option value="rain">Rain 🌧️</option>
                     </select>
                 </div>
 
@@ -175,7 +191,6 @@
         @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
         @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
         @keyframes matrix-fall { to { transform: translateY(110vh); } }
-        @keyframes flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
     `;
     document.head.appendChild(styleSheet);
 
@@ -201,7 +216,8 @@
     setupNav();
 
     // Theme Logic
-    const updateTheme = (type) => {
+    const bgUpload = document.getElementById('u-bg-upload');
+    const updateTheme = (type, url = null) => {
         const bgLayer = document.getElementById('u-bg-layer');
         const themes = {
             default: 'linear-gradient(to bottom, #0a0514, #130a2a)',
@@ -210,12 +226,26 @@
             frost: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
             manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}')` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
         };
-        bgLayer.style.background = themes[type] || themes.default;
+
+        if (type === 'custom') {
+            if (url) bgLayer.style.background = `url('${url}') center/cover fixed no-repeat`;
+            else bgUpload.click();
+        } else {
+            bgLayer.style.background = themes[type] || themes.default;
+        }
         bgLayer.style.backgroundSize = 'cover';
         bgLayer.style.backgroundPosition = 'center';
-        chrome.storage.local.set({ savedTheme: type });
+        chrome.storage.local.set({ savedTheme: type, customBg: url });
     };
     document.getElementById('theme-select').onchange = (e) => updateTheme(e.target.value);
+    bgUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const r = new FileReader();
+            r.onload = (ev) => updateTheme('custom', ev.target.result);
+            r.readAsDataURL(file);
+        }
+    };
 
     // Effect Logic
     let effectInterval = null;
@@ -229,7 +259,7 @@
 
         const symbols = {
             magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸',
-            action: '🔥', matrix: '0', storm: '❄️'
+            action: '🔥', matrix: '0', storm: '❄️', rain: 'rain'
         };
 
         effectInterval = setInterval(() => {
@@ -237,26 +267,25 @@
             let symbol = symbols[type];
             if (type === 'matrix') symbol = Math.random() > 0.5 ? '1' : '0';
 
-            p.innerText = symbol;
-            let animation = type === 'action' ? 'rise' : 'fall';
-            if (type === 'matrix') animation = 'matrix-fall';
-
-            p.style.cssText = `
-                position:absolute; left:${Math.random()*100}%; top:${animation === 'rise' ? '105%' : '-50px'};
-                font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.6+0.4}; color:${type==='matrix'?'#0f0':''};
-                user-select:none; animation: ${animation} ${Math.random()*3+3}s linear forwards;
-            `;
+            if (type === 'rain') {
+                p.style.cssText = `position:absolute; width:2px; height:20px; background:rgba(174,224,255,0.4); left:${Math.random()*100}%; top:-50px; animation: fall 1s linear forwards;`;
+            } else {
+                p.innerText = symbol;
+                let animation = type === 'action' ? 'rise' : 'fall';
+                if (type === 'matrix') animation = 'matrix-fall';
+                p.style.cssText = `position:absolute; left:${Math.random()*100}%; top:${animation === 'rise' ? '105%' : '-50px'}; font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.6+0.4}; color:${type==='matrix'?'#0f0':''}; user-select:none; animation: ${animation} ${Math.random()*3+3}s linear forwards;`;
+            }
             effectLayer.appendChild(p);
-            setTimeout(() => p.remove(), 6000);
-        }, type === 'matrix' ? 100 : 300);
+            setTimeout(() => p.remove(), 5000);
+        }, type === 'rain' ? 50 : (type === 'matrix' ? 100 : 300));
 
         if (type === 'storm') {
             thunderInterval = setInterval(() => {
-                if (Math.random() > 0.95) {
+                if (Math.random() > 0.96) {
                     const flash = document.createElement('div');
                     flash.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.15); z-index:10000000; pointer-events:none;';
                     document.body.appendChild(flash);
-                    setTimeout(() => flash.remove(), 100);
+                    setTimeout(() => flash.remove(), 80);
                 }
             }, 500);
         }
@@ -339,10 +368,10 @@
     document.getElementById('btn-pdf').onclick = () => download('pdf');
 
     // Restore Settings
-    chrome.storage.local.get(['savedTheme', 'savedEffect'], (res) => {
+    chrome.storage.local.get(['savedTheme', 'savedEffect', 'customBg'], (res) => {
         if (res.savedTheme) {
             document.getElementById('theme-select').value = res.savedTheme;
-            updateTheme(res.savedTheme);
+            updateTheme(res.savedTheme, res.customBg);
         }
         if (res.savedEffect) {
             document.getElementById('effect-select').value = res.savedEffect;
