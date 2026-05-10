@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Utoon Reader Pro Max",
-  "version": "3.0",
+  "version": "3.1",
   "description": "Premium Manga Reading Experience with API Extraction, Multi-Download, and VIP features.",
   "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage"],
   "host_permissions": [
@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://utoon.net/*"],
-      "js": ["bulk_helper.js", "content_script.js"]
+      "js": ["jszip.min.js", "jspdf.min.js", "bulk_helper.js", "content_script.js"]
     }
   ],
   "web_accessible_resources": [
