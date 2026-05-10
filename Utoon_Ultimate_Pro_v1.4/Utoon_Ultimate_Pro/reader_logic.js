@@ -13,15 +13,13 @@ async function injectReader() {
     const baseUrl = "https://utoon.net/wp-content/uploads/WP-manga/data";
     const config = {
         ad_key: "0a114f2d33838c1067127b2d044f30bd4484",
-        smart_link: "https://www.profitablecpmratenetwork.com/e3gps5kmvj?key=911ee19ed1bd0c121fd562fdccbb0c26"
+        smart_link: "https://discord.com/users/@threads"
     };
 
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const mangaSlug = pathParts[pathParts.length - 2];
     const chapterSlug = pathParts[pathParts.length - 1];
     const mangaMainUrl = window.location.origin + '/manga/' + mangaSlug + '/';
-
-    window.open(config.smart_link, '_blank');
 
     let allChapters = [];
     let nextUrl = null;
@@ -37,15 +35,10 @@ async function injectReader() {
             if (!mangaInfo) return null;
             
             allChapters = mangaInfo.capitulos || [];
-            allChapters.reverse(); // Order: [Ch1, Ch2, Ch3...]
+            allChapters.reverse();
 
             const currentIndex = allChapters.findIndex(c => (c.slug || '').includes(chapterSlug));
             if (currentIndex !== -1) {
-                // Reversed logic fix: If Ch2, Next is Ch3 (index + 1), Prev is Ch1 (index - 1)
-                // If the user says it's reversed, maybe I should swap the labels or the logic.
-                // Usually Ch3 is "Next" relative to Ch2. 
-                // Let's assume the user wants Ch3 to be Next. 
-                // If it was reversed before, I will swap them.
                 if (currentIndex < allChapters.length - 1) {
                     const ch = allChapters[currentIndex + 1];
                     prevUrl = `${window.location.origin}/manga/${mangaSlug}/${ch.slug}/`;
@@ -83,77 +76,96 @@ async function injectReader() {
     const style = document.createElement('style');
     style.innerHTML = `
         #u-reader-main, #u-reader-main * {
-            cursor: url('https://cur.cursors-4u.net/games/gam-4/gam372.cur'), auto !important;
+            cursor: auto;
         }
         .u-btn-nav {
-            padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; color: white;
+            padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; 
+            transition: all 0.3s ease; color: white; font-size: 14px;
+        }
+        .u-btn-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(168, 85, 247, 0.3);
+        }
+        .u-btn-nav:active {
+            transform: translateY(0);
         }
         .u-btn-nav:disabled {
             background: #475569 !important; cursor: not-allowed; opacity: 0.6;
         }
         .u-header-nav-btn {
-            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; border: none; 
+            padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;
+            transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(168, 85, 247, 0.2);
         }
-        .u-header-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .u-header-nav-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(168, 85, 247, 0.3);
+        }
+        .u-header-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     `;
     document.head.appendChild(style);
 
     document.body.innerHTML = `
-        <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0; font-family: 'Segoe UI', sans-serif; align-items: center; overflow-x: hidden;">
+        <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0;">
             
-            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat;"></div>
+            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a); background-size: cover; background-position: center; background-attachment: fixed;"></div>
             <div id="effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000;"></div>
 
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 8px; border-bottom: 2px solid #5b21b6; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 12px; backdrop-filter: blur(10px);">
+            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 12px 16px; border-bottom: 2px solid #a855f7; z-index: 10000001; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
                 
-                <div style="display:flex; gap:5px;">
-                    <button id="header-prev" class="u-header-nav-btn">Back</button>
-                    <button id="header-next" class="u-header-nav-btn">Next</button>
+                <div style="display:flex; gap:8px;">
+                    <button id="header-prev" class="u-header-nav-btn">← Back</button>
+                    <button id="header-next" class="u-header-nav-btn">Next →</button>
                 </div>
 
-                <div style="width:1px; height:20px; background:rgba(255,255,255,0.2);"></div>
+                <div style="width:1px; height:20px; background:rgba(168, 85, 247, 0.3);"></div>
 
-                <button id="btn-zip" style="background: #7c3aed; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">ZIP</button>
-                <button id="btn-pdf" style="background: #db2777; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">PDF</button>
+                <button id="btn-zip" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size:12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 8px rgba(168, 85, 247, 0.2);">📦 ZIP</button>
+                <button id="btn-pdf" style="background: linear-gradient(135deg, #db2777, #be185d); color: #fff; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size:12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 8px rgba(219, 39, 119, 0.2);">📄 PDF</button>
                 
-                <div style="display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:8px; border:1px solid #5b21b6;">
-                    <select id="effect-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:11px; outline:none;">
+                <div style="display:flex; align-items:center; gap:5px; background:rgba(168, 85, 247, 0.1); padding:6px 10px; border-radius:6px; border:1px solid #a855f7;">
+                    <select id="effect-select" style="background:transparent; color:#a855f7; border:none; cursor:pointer; font-size:12px; outline:none; font-weight: 600;">
                         <option value="off" style="color:#000">No Effect</option>
-                        <option value="romance" style="color:#000">Snow ❄</option>
-                        <option value="hearts" style="color:#000">Hearts ❤️</option>
-                        <option value="sparkles" style="color:#000">Sparkles ✨</option>
-                        <option value="sakura" style="color:#000">Sakura 🌸</option>
-                        <option value="action" style="color:#000">Action 🔥</option>
-                        <option value="matrix" style="color:#000">Matrix 🟢</option>
-                        <option value="rain" style="color:#000">Rain 🌧️</option>
-                        <option value="thunder" style="color:#000">Thunder ⚡</option>
+                        <option value="romance" style="color:#000">❄ Snow</option>
+                        <option value="hearts" style="color:#000">❤️ Hearts</option>
+                        <option value="sparkles" style="color:#000">✨ Sparkles</option>
+                        <option value="sakura" style="color:#000">🌸 Sakura</option>
+                        <option value="action" style="color:#000">🔥 Action</option>
                     </select>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:8px; border:1px solid #5b21b6;">
-                    <select id="theme-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:11px; outline:none;">
-                        <option value="default" style="color:#000">Purple</option>
-                        <option value="grey" style="color:#000">Grey</option>
-                        <option value="black" style="color:#000">Black</option>
-                        <option value="manga" style="color:#000">Cover BG</option>
-                        <option value="custom" style="color:#000">Custom UI</option>
+                <div style="display:flex; align-items:center; gap:5px; background:rgba(168, 85, 247, 0.1); padding:6px 10px; border-radius:6px; border:1px solid #a855f7;">
+                    <select id="theme-select" style="background:transparent; color:#a855f7; border:none; cursor:pointer; font-size:12px; outline:none; font-weight: 600;">
+                        <option value="default" style="color:#000">🟣 Purple</option>
+                        <option value="grey" style="color:#000">⚫ Grey</option>
+                        <option value="black" style="color:#000">◼️ Black</option>
+                        <option value="manga" style="color:#000">🖼️ Cover</option>
+                        <option value="custom" style="color:#000">🎨 Custom</option>
                     </select>
                     <input type="file" id="bg-upload" accept="image/*" style="display:none;">
                 </div>
 
-                <button id="exit-btn" style="background: #1e293b; color: #fff; border: 1px solid #64748b; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">Exit</button>
+                <button id="exit-btn" style="background: #1e293b; color: #fff; border: 1px solid #64748b; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size:12px; cursor: pointer; transition: all 0.3s;">❌ Exit</button>
             </div>
             
-            <div id="img-container" style="max-width:850px; width:100%; margin:20px 0; background: rgba(0,0,0,0.8); box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 12px; overflow: hidden;">
-                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block;" onerror="this.remove()">`).join('')}
+            <div id="img-container" style="max-width:850px; width:100%; margin:20px auto; background: rgba(0,0,0,0.8); box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 12px; overflow: hidden;">
+                ${imageUrls.map((s, i) => `<img src="${s}" style="width:100%; display:block; cursor: pointer;" onerror="this.remove()" ${i === 0 ? 'id="first-img"' : ''}>`).join('')}
                 
-                <div id="nav-footer" style="padding: 30px 20px; display: flex; justify-content: center; gap: 20px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #5b21b6;">
-                    <button id="footer-prev" class="u-btn-nav" style="background: #475569;">Back</button>
-                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed;">Next</button>
+                <div id="nav-footer" style="padding: 30px 20px; display: flex; justify-content: center; gap: 20px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #a855f7;">
+                    <button id="footer-prev" class="u-btn-nav" style="background: linear-gradient(135deg, #64748b, #475569);">← Back</button>
+                    <button id="footer-next" class="u-btn-nav" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">Next →</button>
                 </div>
             </div>
         </div>
     `;
+
+    // Auto-scroll to first image
+    setTimeout(() => {
+        const firstImg = document.getElementById('first-img');
+        if (firstImg) {
+            firstImg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 300);
 
     document.getElementById('exit-btn').onclick = () => { window.location.href = mangaMainUrl; };
 
@@ -189,33 +201,20 @@ async function injectReader() {
 
         effectInterval = setInterval(() => {
             const el = document.createElement('div');
-            el.style.position = 'absolute'; el.style.top = '-50px'; el.style.left = Math.random() * 100 + '%';
+            el.style.position = 'fixed'; el.style.top = '-50px'; el.style.left = Math.random() * 100 + '%';
             el.style.transition = '3.5s linear'; el.style.pointerEvents = 'none'; el.style.zIndex = '10000000';
 
-            if (type === 'romance') { el.innerHTML = '❄'; el.style.color = '#fff'; }
-            else if (type === 'hearts') { el.innerHTML = '❤️'; }
-            else if (type === 'sparkles') { el.innerHTML = '✨'; }
-            else if (type === 'sakura') { el.innerHTML = '🌸'; }
-            else if (type === 'action') { el.innerHTML = '🔥'; }
-            else if (type === 'matrix') { el.innerHTML = Math.random() > 0.5 ? '0' : '1'; el.style.color = '#0f0'; }
-            else if (type === 'rain') { el.style.width = '2px'; el.style.height = '20px'; el.style.background = 'rgba(174,224,255,0.4)'; }
+            if (type === 'romance') { el.innerHTML = '❄'; el.style.color = '#fff'; el.style.fontSize = '20px'; }
+            else if (type === 'hearts') { el.innerHTML = '❤️'; el.style.fontSize = '18px'; }
+            else if (type === 'sparkles') { el.innerHTML = '✨'; el.style.fontSize = '16px'; }
+            else if (type === 'sakura') { el.innerHTML = '🌸'; el.style.fontSize = '18px'; }
+            else if (type === 'action') { el.innerHTML = '🔥'; el.style.fontSize = '18px'; }
 
             effectLayer.appendChild(el);
-            setTimeout(() => el.style.top = '110%', 50);
+            setTimeout(() => el.style.top = '110vh', 50);
             setTimeout(() => el.remove(), 4000);
-        }, type === 'rain' ? 250 : 800); // Faster frequency
+        }, 800);
 
-        if (type === 'thunder') {
-            setInterval(() => {
-                if (Math.random() > 0.97) {
-                    const flash = document.createElement('div');
-                    flash.style.position = 'fixed'; flash.style.top = '0'; flash.style.left = '0'; flash.style.width = '100%'; flash.style.height = '100%';
-                    flash.style.background = 'rgba(255,255,255,0.12)'; flash.style.zIndex = '10000000';
-                    document.body.appendChild(flash);
-                    setTimeout(() => flash.remove(), 80);
-                }
-            }, 800);
-        }
         if (chrome.storage) chrome.storage.local.set({ savedEffect: type });
     };
 
