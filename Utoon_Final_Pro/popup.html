@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { width: 320px; padding: 0; margin: 0; font-family: 'Segoe UI', sans-serif; background: #0a0514; color: white; overflow: hidden; }
+        .container { padding: 20px; background: linear-gradient(135deg, #0a0514 0%, #1a1033 100%); }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(124, 58, 237, 0.3); padding-bottom: 10px; }
+        .header h3 { margin: 0; color: #a78bfa; font-size: 18px; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; border: 1px solid #7c3aed; }
+        .status-card { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+        .value { font-size: 14px; font-weight: 500; margin-bottom: 10px; font-family: monospace; }
+        .vip-info { color: #f1c40f; display: flex; align-items: center; gap: 5px; font-size: 13px; }
+        .usage-bar { height: 6px; background: #334155; border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        .usage-progress { height: 100%; background: #7c3aed; width: 0%; transition: 0.3s; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; }
+        .btn-refresh { background: #7c3aed; color: white; }
+        .btn-refresh:hover { background: #6d28d9; }
+        .btn-copy { background: #334155; color: white; }
+        .btn-copy:hover { background: #475569; }
+        .footer { font-size: 10px; text-align: center; margin-top: 15px; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h3>Utoon Pro Max</h3>
+            <span id="plan-badge" class="badge">Free</span>
+        </div>
+
+        <div class="status-card">
+            <div class="label">MY UNIQUE ID</div>
+            <div id="user-id" class="value">...</div>
+
+            <div id="usage-section">
+                <div class="label" style="display:flex; justify-content:space-between;">
+                    <span>Daily Chapter Limit</span>
+                    <span id="daily-text">0/1</span>
+                </div>
+                <div class="usage-bar">
+                    <div id="usage-progress" class="usage-progress"></div>
+                </div>
+            </div>
+
+            <div id="vip-section" style="display:none">
+                <div class="vip-info">
+                    <span>⭐</span>
+                    <span id="vip-label">VIP Active:</span>
+                    <span id="vip-date" style="font-weight:bold;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-refresh" id="refresh-btn">Refresh Status</button>
+            <button class="btn-copy" id="copy-id">Copy ID</button>
+        </div>
+
+        <div class="footer">Version 3.0 • Powered by Supabase</div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
