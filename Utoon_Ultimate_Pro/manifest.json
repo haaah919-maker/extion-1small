@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Utoon Ultimate Pro",
+  "version": "1.0",
+  "description": "The ultimate reading experience for utoon.net. Themes, Effects, and Downloads.",
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "host_permissions": ["https://utoon.net/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon.png"
+    }
+  },
+  "icons": {
+    "128": "icons/icon.png"
+  }
+}
