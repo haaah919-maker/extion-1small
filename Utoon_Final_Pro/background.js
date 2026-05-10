@@ -1,8 +1,7 @@
 import { getUserProfile, createUserProfile, updateUsage } from './supabase_client.js';
 
 const CONFIG = {
-    smart_link: "https://www.profitablecpmratenetwork.com/e3gps5kmvj?key=911ee19ed1bd0c121fd562fdccbb0c26",
-    base_api: "https://utoon.net/wp-json/icmadara/v1"
+    smart_link: "https://www.profitablecpmratenetwork.com/e3gps5kmvj?key=911ee19ed1bd0c121fd562fdccbb0c26"
 };
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -15,7 +14,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     try {
         let profile = await getUserProfile(userId);
         if (!profile) await createUserProfile(userId, "Guest_" + userId.toString().slice(-4));
-    } catch (e) {}
+    } catch (e) { console.error("Supabase Init Error", e); }
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -24,28 +23,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             try {
                 const usage = await updateUsage(userId);
                 sendResponse(usage);
-            } catch (e) { sendResponse({ allowed: true, plan: "Error" }); }
+            } catch (e) {
+                console.error("Usage Check Error", e);
+                sendResponse({ allowed: true, plan: "Offline Mode" });
+            }
         });
         return true;
     }
-    if (message.action === "get_config") {
-        sendResponse(CONFIG);
-    }
+
     if (message.action === "bulk_download") {
         chrome.scripting.executeScript({
             target: { tabId: sender.tab.id },
+            world: "MAIN",
             func: (images, name, type) => {
                 if (window.UtoonBulkDownload) {
                     window.UtoonBulkDownload(images, name, type);
                 } else {
-                    console.error("Bulk helper not loaded");
+                    alert("Reader engine still warming up. Please try again in a second!");
                 }
             },
             args: [message.images, message.name, message.type]
         });
-    }
-    // Added for v8 logic compatibility: handling navigation to chapter pages
-    if (message.action === "navigate_and_inject") {
-        chrome.tabs.update(sender.tab.id, { url: message.url });
     }
 });

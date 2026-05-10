@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { width: 320px; padding: 0; margin: 0; font-family: 'Segoe UI', sans-serif; background: #0a0514; color: white; overflow: hidden; }
-        .container { padding: 20px; background: linear-gradient(135deg, #0a0514 0%, #1a1033 100%); }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(124, 58, 237, 0.3); padding-bottom: 10px; }
-        .header h3 { margin: 0; color: #a78bfa; font-size: 18px; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; border: 1px solid #7c3aed; }
-        .status-card { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
-        .value { font-size: 14px; font-weight: 500; margin-bottom: 10px; font-family: monospace; }
-        .vip-info { color: #f1c40f; display: flex; align-items: center; gap: 5px; font-size: 13px; }
-        .usage-bar { height: 6px; background: #334155; border-radius: 3px; margin-top: 5px; overflow: hidden; }
-        .usage-progress { height: 100%; background: #7c3aed; width: 0%; transition: 0.3s; }
-        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; }
-        .btn-refresh { background: #7c3aed; color: white; }
-        .btn-refresh:hover { background: #6d28d9; }
-        .btn-copy { background: #334155; color: white; }
-        .btn-copy:hover { background: #475569; }
-        .footer { font-size: 10px; text-align: center; margin-top: 15px; opacity: 0.5; }
+        body { width: 340px; padding: 0; margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #05020a; color: white; overflow: hidden; }
+        .container { padding: 25px; background: radial-gradient(circle at top right, #1a0a2e, #05020a); }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; }
+        .header h3 { margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 20px; font-weight: 900; }
+        .badge { padding: 5px 12px; border-radius: 30px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #00d2ff; }
+        .status-card { background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .label { font-size: 10px; color: #94a3b8; margin-bottom: 6px; font-weight: 700; letter-spacing: 1px; }
+        .value { font-size: 15px; font-weight: 700; margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; color: #e2e8f0; }
+        .vip-info { color: #f1c40f; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
+        .usage-bar { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-top: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .usage-progress { height: 100%; background: linear-gradient(to right, #00d2ff, #3a7bd5); width: 0%; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 12px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-refresh { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; }
+        .btn-refresh:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,210,255,0.4); }
+        .btn-copy { background: #1e293b; color: white; border: 1px solid #334155; }
+        .btn-copy:hover { background: #334155; }
+        .footer { font-size: 10px; text-align: center; margin-top: 20px; opacity: 0.4; font-weight: 500; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h3>Utoon Pro Max</h3>
-            <span id="plan-badge" class="badge">Free</span>
+            <h3>UTOON ULTIMATE</h3>
+            <span id="plan-badge" class="badge">FREE</span>
         </div>
 
         <div class="status-card">
-            <div class="label">MY UNIQUE ID</div>
+            <div class="label">UNIQUE DEVICE ID</div>
             <div id="user-id" class="value">...</div>
 
             <div id="usage-section">
                 <div class="label" style="display:flex; justify-content:space-between;">
-                    <span>Daily Chapter Limit</span>
-                    <span id="daily-text">0/1</span>
+                    <span>DAILY CHAPTERS</span>
+                    <span id="daily-text">0 / 1</span>
                 </div>
                 <div class="usage-bar">
                     <div id="usage-progress" class="usage-progress"></div>
@@ -46,19 +46,19 @@
 
             <div id="vip-section" style="display:none">
                 <div class="vip-info">
-                    <span>⭐</span>
-                    <span id="vip-label">VIP Active:</span>
-                    <span id="vip-date" style="font-weight:bold;"></span>
+                    <span>👑</span>
+                    <span id="vip-label">ELITE ACCESS:</span>
+                    <span id="vip-date" style="font-weight:900;"></span>
                 </div>
             </div>
         </div>
 
         <div class="actions">
-            <button class="btn-refresh" id="refresh-btn">Refresh Status</button>
-            <button class="btn-copy" id="copy-id">Copy ID</button>
+            <button class="btn-refresh" id="refresh-btn">SYNC STATUS</button>
+            <button class="btn-copy" id="copy-id">COPY ID</button>
         </div>
 
-        <div class="footer">Version 3.0 • Powered by Supabase</div>
+        <div class="footer">ULTIMATE PRO v1.6 • BEYOND LEGENDARY</div>
     </div>
     <script src="popup.js"></script>
 </body>
