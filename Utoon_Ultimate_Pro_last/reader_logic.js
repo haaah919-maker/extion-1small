@@ -1,6 +1,8 @@
-async function injectReader() {
+(async function() {
     if (window._u_reader_injected) return;
     window._u_reader_injected = true;
+
+    console.log("Utoon Ultimate Pro: Reader Logic Active");
 
     const storageData = await new Promise(r => {
         if (typeof chrome !== 'undefined' && chrome.storage) {
@@ -21,8 +23,6 @@ async function injectReader() {
     const chapterSlug = pathParts[pathParts.length - 1];
     const mangaMainUrl = window.location.origin + '/manga/' + mangaSlug + '/';
 
-    window.open(config.smart_link, '_blank');
-
     let allChapters = [];
     let nextUrl = null;
     let prevUrl = null;
@@ -31,249 +31,346 @@ async function injectReader() {
         try {
             const mangaApiUrl = `https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mangaSlug}/`;
             const res = await fetch(mangaApiUrl, {headers: {'Accept': 'application/json'}});
-            if (!res.ok) return null;
+            if (!res.ok) throw new Error("Manga API failed");
             const data = await res.json();
             const mangaInfo = (data.mangas || [])[0];
-            if (!mangaInfo) return null;
+            if (!mangaInfo) throw new Error("Manga info not found");
             
             allChapters = mangaInfo.capitulos || [];
-            allChapters.reverse(); // Order: [Ch1, Ch2, Ch3...]
+            allChapters.sort((a, b) => {
+                const aNum = parseFloat(a.nombre.match(/[\d.]+/)?.[0] || 0);
+                const bNum = parseFloat(b.nombre.match(/[\d.]+/)?.[0] || 0);
+                return aNum - bNum;
+            });
 
-            const currentIndex = allChapters.findIndex(c => (c.slug || '').includes(chapterSlug));
+            const currentIndex = allChapters.findIndex(c => c.slug === chapterSlug || c.slug === chapterSlug.replace('.', '-'));
+
             if (currentIndex !== -1) {
-                // Reversed logic fix: If Ch2, Next is Ch3 (index + 1), Prev is Ch1 (index - 1)
-                // If the user says it's reversed, maybe I should swap the labels or the logic.
-                // Usually Ch3 is "Next" relative to Ch2. 
-                // Let's assume the user wants Ch3 to be Next. 
-                // If it was reversed before, I will swap them.
                 if (currentIndex < allChapters.length - 1) {
-                    const ch = allChapters[currentIndex + 1];
-                    prevUrl = `${window.location.origin}/manga/${mangaSlug}/${ch.slug}/`;
+                    const nextCh = allChapters[currentIndex + 1];
+                    nextUrl = `${window.location.origin}/manga/${mangaSlug}/${nextCh.slug}/`;
                 }
                 if (currentIndex > 0) {
-                    const ch = allChapters[currentIndex - 1];
-                    nextUrl = `${window.location.origin}/manga/${mangaSlug}/${ch.slug}/`;
+                    const prevCh = allChapters[currentIndex - 1];
+                    prevUrl = `${window.location.origin}/manga/${mangaSlug}/${prevCh.slug}/`;
                 }
             }
 
             const currentChObj = allChapters[currentIndex];
-            if (!currentChObj) return null;
+            if (!currentChObj) throw new Error("Current chapter not found in API");
 
             const imgApiUrl = `https://utoon.net/wp-json/icmadara/v1/capitulo/${currentChObj.id_capitulo}/`;
             const imgRes = await fetch(imgApiUrl, {headers: {'Accept': 'application/json'}});
-            if (!imgRes.ok) return null;
+            if (!imgRes.ok) throw new Error("Image API failed");
             const imgData = await imgRes.json();
             const rawList = imgData.imagenes || imgData.images || [];
             return rawList.map(item => typeof item === 'string' ? item : (item.src || '')).filter(Boolean);
-        } catch(e) { return null; }
+        } catch(e) {
+            console.warn("API Fallback Triggered:", e.message);
+            return null;
+        }
+    }
+
+    function scrapeImages() {
+        const imgs = Array.from(document.querySelectorAll('.wp-manga-chapter-img, .read-container img, .page-break img'));
+        if (imgs.length > 0) {
+            return imgs.map(img => img.src || img.dataset.src).filter(Boolean);
+        }
+        return null;
     }
 
     let imageUrls = await fetchImagesAndNav();
     if (!imageUrls || imageUrls.length === 0) {
+        imageUrls = scrapeImages();
+    }
+    if (!imageUrls || imageUrls.length === 0) {
         imageUrls = [];
-        for (let i = 1; i <= 300; i++) {
+        const extensions = ['jpg', 'webp', 'png', 'jpeg'];
+        for (let i = 1; i <= 150; i++) {
             const n = i.toString().padStart(2, '0');
-            imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.jpg`);
-            imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.webp`);
+            const n3 = i.toString().padStart(3, '0');
+            extensions.forEach(ext => {
+                imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.${ext}`);
+                imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n3}.${ext}`);
+            });
         }
     }
 
     const coverImg = document.querySelector('meta[property="og:image"]')?.content || '';
 
+    // Clear UI and Inject Reader
+    document.body.innerHTML = '';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.background = '#000';
+    document.body.style.overflow = 'auto';
+
     const style = document.createElement('style');
     style.innerHTML = `
-        #u-reader-main, #u-reader-main * {
-            cursor: url('https://cur.cursors-4u.net/games/gam-4/gam372.cur'), auto !important;
-        }
-        .u-btn-nav {
-            padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; color: white;
-        }
-        .u-btn-nav:disabled {
-            background: #475569 !important; cursor: not-allowed; opacity: 0.6;
-        }
-        .u-header-nav-btn {
-            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
-        }
-        .u-header-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        body { font-family: 'Inter', sans-serif; color: white; }
+        .u-btn-nav { padding: 12px 30px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; font-size: 14px; }
+        .u-btn-nav:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.1); }
+        .u-btn-nav:disabled { background: #475569 !important; cursor: not-allowed; opacity: 0.5; }
+        .u-header-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .u-header-btn:hover { background: rgba(255,255,255,0.2); }
+        .u-header-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .u-control-group { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.3); }
+        .u-select { background: transparent; color: white; border: none; font-size: 11px; cursor: pointer; outline: none; }
+        .u-select option { background: #0a0519; color: white; }
+        .u-action-btn { background: #7c3aed; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
+        .u-action-btn:hover { background: #6d28d9; }
+
+        @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+        @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
+        @keyframes matrix-fall { to { transform: translateY(110vh); } }
     `;
     document.head.appendChild(style);
 
-    document.body.innerHTML = `
-        <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0; font-family: 'Segoe UI', sans-serif; align-items: center; overflow-x: hidden;">
-            
-            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat;"></div>
-            <div id="effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000;"></div>
+    const readerHTML = `
+        <div id="u-reader-main" style="position: relative; width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden;">
+            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a); background-size: cover; background-position: center; background-attachment: fixed;"></div>
+            <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000;"></div>
 
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 8px; border-bottom: 2px solid #5b21b6; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 12px; backdrop-filter: blur(10px);">
+            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 10px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(12px);">
                 
-                <div style="display:flex; gap:5px;">
-                    <button id="header-prev" class="u-header-nav-btn">Back</button>
-                    <button id="header-next" class="u-header-nav-btn">Next</button>
+                <div style="display:flex; gap:6px;">
+                    <button id="header-prev" class="u-header-btn">PREV</button>
+                    <button id="header-next" class="u-header-btn">NEXT</button>
                 </div>
 
-                <div style="width:1px; height:20px; background:rgba(255,255,255,0.2);"></div>
+                <div style="width:1px; height:20px; background:rgba(255,255,255,0.15);"></div>
 
-                <button id="btn-zip" style="background: #7c3aed; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">ZIP</button>
-                <button id="btn-pdf" style="background: #db2777; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">PDF</button>
+                <div class="u-control-group">
+                    <button id="auto-scroll-btn" style="background:none; border:none; color:white; cursor:pointer; font-size:14px; padding:0 5px;"><span id="scroll-icon">▶</span></button>
+                    <input type="number" id="scroll-speed" value="2" min="1" max="10" style="width:35px; background:none; border:none; color:white; font-size:11px; text-align:center;">
+                </div>
+
+                <button id="btn-zip" class="u-action-btn" style="background:#2563eb;">ZIP</button>
+                <button id="btn-pdf" class="u-action-btn" style="background:#db2777;">PDF</button>
                 
-                <div style="display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:8px; border:1px solid #5b21b6;">
-                    <select id="effect-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:11px; outline:none;">
-                        <option value="off" style="color:#000">No Effect</option>
-                        <option value="romance" style="color:#000">Snow ❄</option>
-                        <option value="hearts" style="color:#000">Hearts ❤️</option>
-                        <option value="sparkles" style="color:#000">Sparkles ✨</option>
-                        <option value="sakura" style="color:#000">Sakura 🌸</option>
-                        <option value="action" style="color:#000">Action 🔥</option>
-                        <option value="matrix" style="color:#000">Matrix 🟢</option>
-                        <option value="rain" style="color:#000">Rain 🌧️</option>
-                        <option value="thunder" style="color:#000">Thunder ⚡</option>
+                <div class="u-control-group">
+                    <select id="effect-select" class="u-select">
+                        <option value="none">No Effect</option>
+                        <option value="magic">Magic ✨</option>
+                        <option value="cosmic">Cosmic 🌌</option>
+                        <option value="hearts">Hearts ❤️</option>
+                        <option value="gold">Gold 💰</option>
+                        <option value="sakura">Sakura 🌸</option>
+                        <option value="action">Action 🔥</option>
+                        <option value="matrix">Matrix 🟢</option>
+                        <option value="storm">Storm ⚡</option>
                     </select>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:8px; border:1px solid #5b21b6;">
-                    <select id="theme-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:11px; outline:none;">
-                        <option value="default" style="color:#000">Purple</option>
-                        <option value="grey" style="color:#000">Grey</option>
-                        <option value="black" style="color:#000">Black</option>
-                        <option value="manga" style="color:#000">Cover BG</option>
-                        <option value="custom" style="color:#000">Custom UI</option>
+                <div class="u-control-group">
+                    <select id="theme-select" class="u-select">
+                        <option value="default">Purple</option>
+                        <option value="black">Black</option>
+                        <option value="royal">Royal Wine</option>
+                        <option value="frost">Frost</option>
+                        <option value="manga">Manga Cover</option>
                     </select>
-                    <input type="file" id="bg-upload" accept="image/*" style="display:none;">
                 </div>
 
-                <button id="exit-btn" style="background: #1e293b; color: #fff; border: 1px solid #64748b; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size:11px;">Exit</button>
+                <button id="exit-btn" class="u-header-btn" style="background: #ef4444; border:none;">EXIT</button>
             </div>
+
+            <div id="loader-msg" style="position:fixed; bottom:20px; right:20px; background:#7c3aed; padding:10px 20px; border-radius:8px; display:none; z-index:10000005; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5);"></div>
             
-            <div id="img-container" style="max-width:850px; width:100%; margin:20px 0; background: rgba(0,0,0,0.8); box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 12px; overflow: hidden;">
-                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block;" onerror="this.remove()">`).join('')}
+            <div id="img-container" style="max-width:900px; width:100%; margin:20px 0; background: rgba(0,0,0,0.8); box-shadow: 0 0 60px rgba(0,0,0,0.9); border-radius: 12px; overflow: hidden;">
+                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block; min-height:200px;" onerror="this.remove()">`).join('')}
                 
-                <div id="nav-footer" style="padding: 30px 20px; display: flex; justify-content: center; gap: 20px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #5b21b6;">
-                    <button id="footer-prev" class="u-btn-nav" style="background: #475569;">Back</button>
-                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed;">Next</button>
+                <div id="nav-footer" style="padding: 40px 20px; display: flex; justify-content: center; gap: 25px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #7c3aed;">
+                    <button id="footer-prev" class="u-btn-nav" style="background: #475569;">PREVIOUS CHAPTER</button>
+                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed;">NEXT CHAPTER</button>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('exit-btn').onclick = () => { window.location.href = mangaMainUrl; };
+    document.body.innerHTML = readerHTML;
 
-    const navElements = {
-        hNext: document.getElementById('header-next'),
-        hPrev: document.getElementById('header-prev'),
-        fNext: document.getElementById('footer-next'),
-        fPrev: document.getElementById('footer-prev')
-    };
+    // Navigation Logic
+    const setupNav = () => {
+        const hNext = document.getElementById('header-next');
+        const hPrev = document.getElementById('header-prev');
+        const fNext = document.getElementById('footer-next');
+        const fPrev = document.getElementById('footer-prev');
 
-    const updateNav = () => {
         if (nextUrl) {
-            navElements.hNext.onclick = navElements.fNext.onclick = () => window.location.href = nextUrl;
+            hNext.onclick = fNext.onclick = () => window.location.href = nextUrl;
         } else {
-            navElements.hNext.disabled = navElements.fNext.disabled = true;
+            hNext.disabled = fNext.disabled = true;
         }
         if (prevUrl) {
-            navElements.hPrev.onclick = navElements.fPrev.onclick = () => window.location.href = prevUrl;
+            hPrev.onclick = fPrev.onclick = () => window.location.href = prevUrl;
         } else {
-            navElements.hPrev.disabled = navElements.fPrev.disabled = true;
+            hPrev.disabled = fPrev.disabled = true;
         }
     };
-    updateNav();
+    setupNav();
 
-    // Effects
+    document.getElementById('exit-btn').onclick = () => { window.location.href = mangaMainUrl; };
+
+    // Auto Scroll Logic
+    let scrollInterval = null;
+    let lastInteraction = 0;
+    const scrollBtn = document.getElementById('auto-scroll-btn');
+    const scrollIcon = document.getElementById('scroll-icon');
+    const scrollSpeedInput = document.getElementById('scroll-speed');
+
+    const toggleScroll = () => {
+        if (scrollInterval) {
+            clearInterval(scrollInterval);
+            scrollInterval = null;
+            scrollIcon.innerText = '▶';
+            scrollBtn.style.color = 'white';
+        } else {
+            scrollIcon.innerText = '⏸';
+            scrollBtn.style.color = '#7c3aed';
+            scrollInterval = setInterval(() => {
+                if (Date.now() - lastInteraction > 1500) {
+                    window.scrollBy(0, parseInt(scrollSpeedInput.value));
+                }
+            }, 30);
+        }
+    };
+    ['mousemove', 'wheel', 'touchstart', 'keydown'].forEach(evt => {
+        window.addEventListener(evt, () => { lastInteraction = Date.now(); }, { passive: true });
+    });
+    scrollBtn.onclick = toggleScroll;
+
+    // Effects Logic
     let effectInterval = null;
-    const effectLayer = document.getElementById('effect-layer');
-
+    let thunderInterval = null;
     const startEffect = (type) => {
         if (effectInterval) clearInterval(effectInterval);
+        if (thunderInterval) clearInterval(thunderInterval);
+        const effectLayer = document.getElementById('u-effect-layer');
         effectLayer.innerHTML = '';
-        if (type === 'off') return;
+        if (type === 'none') return;
+
+        const symbols = {
+            magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸',
+            action: '🔥', matrix: '0', storm: '❄️'
+        };
 
         effectInterval = setInterval(() => {
-            const el = document.createElement('div');
-            el.style.position = 'absolute'; el.style.top = '-50px'; el.style.left = Math.random() * 100 + '%';
-            el.style.transition = '3.5s linear'; el.style.pointerEvents = 'none'; el.style.zIndex = '10000000';
+            const p = document.createElement('div');
+            let symbol = symbols[type];
+            if (type === 'matrix') symbol = Math.random() > 0.5 ? '1' : '0';
 
-            if (type === 'romance') { el.innerHTML = '❄'; el.style.color = '#fff'; }
-            else if (type === 'hearts') { el.innerHTML = '❤️'; }
-            else if (type === 'sparkles') { el.innerHTML = '✨'; }
-            else if (type === 'sakura') { el.innerHTML = '🌸'; }
-            else if (type === 'action') { el.innerHTML = '🔥'; }
-            else if (type === 'matrix') { el.innerHTML = Math.random() > 0.5 ? '0' : '1'; el.style.color = '#0f0'; }
-            else if (type === 'rain') { el.style.width = '2px'; el.style.height = '20px'; el.style.background = 'rgba(174,224,255,0.4)'; }
+            p.innerText = symbol;
+            let animation = type === 'action' ? 'rise' : 'fall';
+            if (type === 'matrix') animation = 'matrix-fall';
 
-            effectLayer.appendChild(el);
-            setTimeout(() => el.style.top = '110%', 50);
-            setTimeout(() => el.remove(), 4000);
-        }, type === 'rain' ? 250 : 800); // Faster frequency
+            p.style.cssText = `
+                position:absolute; left:${Math.random()*100}%; top:${animation === 'rise' ? '105%' : '-50px'};
+                font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.6+0.4}; color:${type==='matrix'?'#0f0':''};
+                user-select:none; pointer-events:none; animation: ${animation} ${Math.random()*3+3}s linear forwards;
+            `;
+            effectLayer.appendChild(p);
+            setTimeout(() => p.remove(), 6000);
+        }, type === 'matrix' ? 100 : 300);
 
-        if (type === 'thunder') {
-            setInterval(() => {
-                if (Math.random() > 0.97) {
+        if (type === 'storm') {
+            thunderInterval = setInterval(() => {
+                if (Math.random() > 0.96) {
                     const flash = document.createElement('div');
-                    flash.style.position = 'fixed'; flash.style.top = '0'; flash.style.left = '0'; flash.style.width = '100%'; flash.style.height = '100%';
-                    flash.style.background = 'rgba(255,255,255,0.12)'; flash.style.zIndex = '10000000';
+                    flash.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.15); z-index:10000000; pointer-events:none;';
                     document.body.appendChild(flash);
-                    setTimeout(() => flash.remove(), 80);
+                    setTimeout(() => flash.remove(), 100);
                 }
-            }, 800);
+            }, 500);
         }
-        if (chrome.storage) chrome.storage.local.set({ savedEffect: type });
+        chrome.storage.local.set({ savedEffect: type });
     };
-
     document.getElementById('effect-select').onchange = (e) => startEffect(e.target.value);
 
-    const bgLayer = document.getElementById('u-bg-layer');
-    const bgUpload = document.getElementById('bg-upload');
-    const updateTheme = (type, url = null) => {
-        const themes = { 
-            default: 'linear-gradient(to bottom, #0a0514, #130a2a)', 
-            grey: '#212529', 
+    // Theme Logic
+    const updateTheme = (type) => {
+        const bgLayer = document.getElementById('u-bg-layer');
+        const themes = {
+            default: 'linear-gradient(to bottom, #0a0514, #130a2a)',
             black: '#000',
-            manga: `linear-gradient(rgba(10,5,20,0.88), rgba(10,5,20,0.88)), url('${coverImg}')`
+            royal: 'linear-gradient(to bottom, #2a0a13, #4d1d2b)',
+            frost: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
+            manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}')` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
         };
-        
-        if (type === 'custom') { 
-            if (url) bgLayer.style.background = `url(${url})`; else bgUpload.click(); 
-        } else {
-            bgLayer.style.background = themes[type] || themes.default;
-        }
+        bgLayer.style.background = themes[type] || themes.default;
         bgLayer.style.backgroundSize = 'cover';
         bgLayer.style.backgroundPosition = 'center';
-        bgLayer.style.backgroundAttachment = 'fixed';
-        bgLayer.style.backgroundRepeat = 'no-repeat';
-
-        if (chrome.storage) chrome.storage.local.set({ savedTheme: type, customBg: url });
+        chrome.storage.local.set({ savedTheme: type });
     };
     document.getElementById('theme-select').onchange = (e) => updateTheme(e.target.value);
-    bgUpload.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const r = new FileReader();
-            r.onload = (ev) => updateTheme('custom', ev.target.result);
-            r.readAsDataURL(file);
-        }
-    };
 
-    chrome.storage.local.get(['savedTheme', 'savedEffect', 'customBg'], (res) => {
-        if (res.savedTheme) {
-            document.getElementById('theme-select').value = res.savedTheme;
-            updateTheme(res.savedTheme, res.customBg);
+    // Download Logic
+    async function download(type) {
+        const msg = document.getElementById('loader-msg');
+        msg.innerText = "Initializing Download...";
+        msg.style.display = 'block';
+        try {
+            if (type === 'zip') {
+                const zip = new JSZip();
+                const folder = zip.folder(`Chapter_${chapterSlug}`);
+                for (let i = 0; i < imageUrls.length; i++) {
+                    msg.innerText = `ZIP: Fetching Image ${i+1}/${imageUrls.length}`;
+                    try {
+                        const r = await fetch(imageUrls[i]);
+                        if (!r.ok) continue;
+                        const b = await r.blob();
+                        folder.file(`image_${(i+1).toString().padStart(3,'0')}.jpg`, b);
+                    } catch(e) {}
+                }
+                msg.innerText = "Generating ZIP...";
+                const content = await zip.generateAsync({type:"blob"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(content);
+                a.download = `Chapter_${chapterSlug}.zip`;
+                a.click();
+            } else {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+                for (let i = 0; i < imageUrls.length; i++) {
+                    msg.innerText = `PDF: Fetching Image ${i+1}/${imageUrls.length}`;
+                    try {
+                        const r = await fetch(imageUrls[i]);
+                        if (!r.ok) continue;
+                        const b = await r.blob();
+                        const data = await new Promise(res => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result);
+                            reader.readAsDataURL(b);
+                        });
+                        if (i > 0) pdf.addPage();
+                        const pW = pdf.internal.pageSize.getWidth(), pH = pdf.internal.pageSize.getHeight();
+                        const imgProps = pdf.getImageProperties(data);
+                        const ratio = imgProps.width / imgProps.height;
+                        let finalW = pW, finalH = pW / ratio;
+                        if (finalH > pH) { finalH = pH; finalW = pH * ratio; }
+                        pdf.addImage(data, 'JPEG', (pW-finalW)/2, (pH-finalH)/2, finalW, finalH);
+                    } catch(e) {}
+                }
+                msg.innerText = "Saving PDF...";
+                pdf.save(`Chapter_${chapterSlug}.pdf`);
+            }
+            msg.innerText = "Download Complete!";
+        } catch (e) {
+            msg.innerText = "Error: " + e.message;
+            console.error(e);
         }
-        if (res.savedEffect) {
-            document.getElementById('effect-select').value = res.savedEffect;
-            startEffect(res.savedEffect);
-        }
-    });
+        setTimeout(() => msg.style.display = 'none', 3000);
+    }
+    document.getElementById('btn-zip').onclick = () => download('zip');
+    document.getElementById('btn-pdf').onclick = () => download('pdf');
 
-    document.getElementById('btn-zip').onclick = async () => {
-        const zip = new JSZip(); const folder = zip.folder("images");
-        const images = document.querySelectorAll('#img-container img');
-        for (let i = 0; i < images.length; i++) {
-            try { const r = await fetch(images[i].src); const b = await r.blob(); folder.file(`image_${i+1}.jpg`, b); } catch(e) {}
-        }
-        zip.generateAsync({type:"blob"}).then(c => {
-            const a = document.createElement("a"); a.href = URL.createObjectURL(c); a.download = `Chapter_${chapterSlug}.zip`; a.click();
-        });
-    };
-}
-
-injectReader();
+    // Restore Settings
+    if (storageData.savedTheme) {
+        document.getElementById('theme-select').value = storageData.savedTheme;
+        updateTheme(storageData.savedTheme);
+    }
+    if (storageData.savedEffect) {
+        document.getElementById('effect-select').value = storageData.savedEffect;
+        startEffect(storageData.savedEffect);
+    }
+})();
