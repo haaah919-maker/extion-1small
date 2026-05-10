@@ -2,51 +2,65 @@
     if (window._u_reader_injected_real) return;
     window._u_reader_injected_real = true;
 
-    // Ensure libraries are loaded
-    if (!window.JSZip || !window.jspdf) {
-        const loadScript = (name) => {
-            return new Promise(res => {
-                const s = document.createElement('script');
-                s.src = chrome.runtime.getURL(name);
-                s.onload = res;
-                (document.head || document.documentElement).appendChild(s);
-            });
-        };
-        await loadScript('jszip.min.js');
-        await loadScript('jspdf.min.js');
-    }
+    console.log("Utoon Pro Max Legendary: Reader Engine Starting");
 
-    const CONFIG = await new Promise(res => chrome.runtime.sendMessage({action: "get_config"}, res));
+    const CONFIG = {
+        smart_link: "https://www.profitablegatecpm.com/e3gp5kmvj?key=911ee19e41bd0c121f64562f64ccbb0c26"
+    };
+
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const mangaSlug = pathParts[pathParts.length - 2];
     const chapterSlug = pathParts[pathParts.length - 1];
 
+    let nextUrl = null;
+    let prevUrl = null;
+    let coverImg = "";
+
     async function fetchImages() {
         try {
+            // 1. Fetch Manga Info for Navigation and Cover
             const mangaApiUrl = `https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mangaSlug}/`;
-            const res = await fetch(mangaApiUrl);
-            const data = await res.json();
-            const mangaInfo = (data.mangas || [])[0];
-            if (mangaInfo) {
-                const chapters = mangaInfo.capitulos || [];
-                const ch = chapters.find(c => c.slug === chapterSlug || c.slug === chapterSlug.replace('.', '-'));
-                if (ch) {
-                    const imgRes = await fetch(`https://utoon.net/wp-json/icmadara/v1/capitulo/${ch.id_capitulo}/`);
+            const mRes = await fetch(mangaApiUrl);
+            const mData = await mRes.json();
+            const mInfo = (mData.mangas || [])[0];
+
+            if (mInfo) {
+                coverImg = mInfo.manga_cover || "";
+                const chapters = (mInfo.capitulos || []).reverse(); // Order: [Ch1, Ch2, ...]
+                const idx = chapters.findIndex(c => c.slug === chapterSlug || c.slug === chapterSlug.replace('.', '-'));
+
+                if (idx !== -1) {
+                    if (idx < chapters.length - 1) {
+                        nextUrl = `${window.location.origin}/manga/${mangaSlug}/${chapters[idx + 1].slug}/`;
+                    }
+                    if (idx > 0) {
+                        prevUrl = `${window.location.origin}/manga/${mangaSlug}/${chapters[idx - 1].slug}/`;
+                    }
+                }
+
+                // 2. Fetch Chapter Images
+                const chInfo = chapters[idx];
+                if (chInfo) {
+                    const imgRes = await fetch(`https://utoon.net/wp-json/icmadara/v1/capitulo/${chInfo.id_capitulo}/`);
                     const imgData = await imgRes.json();
                     const raw = imgData.imagenes || imgData.images || [];
-                    const apiImgs = raw.map(i => typeof i === 'string' ? i : i.src).filter(Boolean);
-                    if (apiImgs.length) return apiImgs;
+                    return raw.map(i => typeof i === 'string' ? i : i.src).filter(Boolean);
                 }
             }
-        } catch (e) {}
-        // Fallback to DOM
+        } catch (e) { console.error("API Fetch Failed", e); }
+
+        // Fallback: DOM Scrape
         return Array.from(document.querySelectorAll('img.wp-manga-chapter-img'))
             .map(i => i.src || i.dataset.src)
             .filter(s => s && s.includes('wp-content/uploads'));
     }
 
     const imageUrls = await fetchImages();
-    if (!imageUrls || imageUrls.length === 0) return;
+    if (!imageUrls || imageUrls.length === 0) {
+        console.error("No images found.");
+        // If we failed but we are on a reader page, maybe show error
+        return;
+    }
 
     const usage = await new Promise(res => chrome.runtime.sendMessage({action: "check_limit"}, res));
 
@@ -69,103 +83,183 @@
     // Prepare Reader UI
     document.body.innerHTML = `
         <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0; font-family: sans-serif; align-items: center; overflow-x: hidden;">
-            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; background: linear-gradient(to bottom, #0a0514, #130a2a); transition: background 0.5s;"></div>
+            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; background: linear-gradient(to bottom, #0a0514, #130a2a); transition: 0.8s; background-size: cover; background-position: center; background-attachment: fixed;"></div>
             <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; overflow:hidden;"></div>
 
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 10px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; flex-wrap: wrap; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(10px);">
+            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); border-bottom: 2px solid #7c3aed; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); padding: 8px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; flex-wrap: wrap; justify-content: center; align-items:center; gap: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
 
-                <div style="display:flex; align-items:center; gap:5px; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 8px;">
-                    <span style="font-size:11px; font-weight:bold; color:#7c3aed;">THEME:</span>
-                    <select id="theme-select" style="background:transparent; color:white; border:none; font-size:12px; cursor:pointer; outline:none;">
+                <div style="display:flex; gap:5px;">
+                    <button id="nav-prev-h" class="u-nav-btn">Back</button>
+                    <button id="nav-next-h" class="u-nav-btn">Next</button>
+                </div>
+
+                <div class="u-divider"></div>
+
+                <div class="u-control-group">
+                    <span class="u-label">THEME:</span>
+                    <select id="theme-select" class="u-select">
                         <option value="default">Galaxy</option>
-                        <option value="black">Deep Black</option>
-                        <option value="rose">Rose Wine</option>
-                        <option value="snow">Light Snow</option>
-                        <option value="art">Aesthetic 1</option>
-                        <option value="art2">Aesthetic 2</option>
+                        <option value="black">Noir</option>
+                        <option value="manga">Manga Cover</option>
+                        <option value="royal">Royal Wine</option>
+                        <option value="frost">Frost</option>
                     </select>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:5px; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 8px;">
-                    <span style="font-size:11px; font-weight:bold; color:#7c3aed;">EFFECT:</span>
-                    <select id="effect-select" style="background:transparent; color:white; border:none; font-size:12px; cursor:pointer; outline:none;">
+                <div class="u-control-group">
+                    <span class="u-label">EFFECT:</span>
+                    <select id="effect-select" class="u-select">
                         <option value="none">None</option>
-                        <option value="stars">Stars</option>
-                        <option value="hearts">Hearts</option>
-                        <option value="snow">Snow</option>
-                        <option value="leaves">Autumn</option>
-                        <option value="coins">Gold</option>
+                        <option value="magic">Magic ✨</option>
+                        <option value="cosmic">Cosmic 🌌</option>
+                        <option value="hearts">Hearts ❤️</option>
+                        <option value="storm">Storm ⚡</option>
+                        <option value="gold">Gold 💰</option>
+                        <option value="sakura">Sakura 🌸</option>
+                        <option value="matrix">Matrix 🟢</option>
+                        <option value="action">Action 🔥</option>
                     </select>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:8px; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 8px;">
-                    <button id="auto-scroll-btn" style="background:none; border:none; color:white; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px;">
+                <div class="u-control-group">
+                    <button id="auto-scroll-btn" style="background:none; border:none; color:white; cursor:pointer; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:5px;">
                         <span id="scroll-icon">▶</span> SCROLL
                     </button>
-                    <input type="range" id="scroll-speed" min="1" max="10" value="2" style="width:60px; accent-color:#7c3aed;">
+                    <input type="range" id="scroll-speed" min="1" max="10" value="2" style="width:50px; accent-color:#7c3aed;">
                 </div>
 
-                <div style="display:flex; gap:8px;">
-                    <button id="btn-zip" style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:12px;">ZIP</button>
-                    <button id="btn-pdf" style="background: linear-gradient(135deg, #db2777, #9d174d); color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:12px;">PDF</button>
+                <div style="display:flex; gap:6px;">
+                    <button id="btn-zip" class="u-action-btn" style="background: #7c3aed;">ZIP</button>
+                    <button id="btn-pdf" class="u-action-btn" style="background: #db2777;">PDF</button>
                 </div>
 
-                <button onclick="location.reload()" style="background: #333; color: white; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:12px;">Exit</button>
+                <button onclick="location.reload()" class="u-exit-btn">Exit</button>
 
-                <div style="font-size: 11px; padding: 4px 10px; background: rgba(124, 58, 237, 0.2); border: 1px solid #7c3aed; border-radius: 20px;">
-                    Plan: <span id="plan-display" style="color:#a78bfa; font-weight:bold;">${usage.plan}</span>
+                <div class="u-plan-tag">
+                    Plan: <span id="plan-display" style="color:#a78bfa;">${usage.plan}</span>
                 </div>
             </div>
 
-            <div id="img-container" style="max-width:850px; width:100%; margin:20px 0; background: transparent; box-shadow: 0 0 60px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden; position:relative; z-index:1;">
-                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block; min-height:400px; background: rgba(26,26,26,0.5);" onerror="this.remove()">`).join('')}
+            <div id="img-container" style="max-width:850px; width:100%; margin:20px 0; background: rgba(0,0,0,0.4); box-shadow: 0 0 60px rgba(0,0,0,0.8); border-radius: 12px; overflow: hidden; position:relative; z-index:1;">
+                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block; min-height:400px; background: rgba(26,26,26,0.3);" onerror="this.remove()">`).join('')}
+
+                <div id="footer-nav" style="padding: 40px 20px; display: flex; justify-content: center; gap: 20px; background: rgba(10, 5, 25, 0.9); border-top: 2px solid #7c3aed;">
+                    <button id="nav-prev-f" class="u-footer-nav-btn">Previous Chapter</button>
+                    <button id="nav-next-f" class="u-footer-nav-btn" style="background: #7c3aed;">Next Chapter</button>
+                </div>
             </div>
+
             <div id="loader-msg" style="position: fixed; bottom: 30px; right: 30px; background: #7c3aed; color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 10000005; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">Processing...</div>
         </div>
     `;
 
-    // Add Styles for Animations
+    // Add Styles
     const styleSheet = document.createElement('style');
     styleSheet.innerHTML = `
-        @keyframes fallEffect { to { transform: translateY(110vh) rotate(360deg); } }
-        @keyframes riseEffect { to { transform: translateY(-110vh) rotate(-360deg); } }
-        #scroll-speed::-webkit-slider-runnable-track { height: 4px; background: #444; border-radius: 2px; }
-        #scroll-speed::-webkit-slider-thumb { margin-top: -6px; height: 16px; width: 16px; border-radius: 50%; background: #7c3aed; cursor: pointer; -webkit-appearance: none; }
+        .u-nav-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .u-nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .u-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .u-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); }
+        .u-control-group { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2); }
+        .u-label { font-size: 10px; font-weight: 800; color: #7c3aed; }
+        .u-select { background: transparent; color: white; border: none; font-size: 11px; cursor: pointer; outline: none; }
+        .u-select option { background: #130a2a; color: white; }
+        .u-action-btn { color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .u-action-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .u-exit-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .u-plan-tag { font-size: 10px; padding: 4px 10px; background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(139, 92, 246, 0.1)); border: 1px solid #7c3aed; border-radius: 20px; font-weight: bold; }
+        .u-footer-nav-btn { padding: 12px 30px; border-radius: 8px; border: none; color: white; font-weight: bold; cursor: pointer; background: #475569; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-size: 14px; }
+        .u-footer-nav-btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.1); }
+        .u-footer-nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+        @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
+        @keyframes matrix-fall { to { transform: translateY(110vh); } }
+        @keyframes flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
     `;
     document.head.appendChild(styleSheet);
+
+    // Navigation
+    const setupNav = () => {
+        const btnNextH = document.getElementById('nav-next-h');
+        const btnPrevH = document.getElementById('nav-prev-h');
+        const btnNextF = document.getElementById('nav-next-f');
+        const btnPrevF = document.getElementById('nav-prev-f');
+
+        if (nextUrl) {
+            btnNextH.onclick = btnNextF.onclick = () => window.location.href = nextUrl;
+        } else {
+            btnNextH.disabled = btnNextF.disabled = true;
+        }
+
+        if (prevUrl) {
+            btnPrevH.onclick = btnPrevF.onclick = () => window.location.href = prevUrl;
+        } else {
+            btnPrevH.disabled = btnPrevF.disabled = true;
+        }
+    };
+    setupNav();
 
     // Theme Logic
     const updateTheme = (type) => {
         const bgLayer = document.getElementById('u-bg-layer');
         const themes = {
             default: 'linear-gradient(to bottom, #0a0514, #130a2a)',
-            black: 'linear-gradient(to bottom, #000000, #111111)',
-            rose: 'linear-gradient(to bottom, #2a0a13, #4d1d2b)',
-            snow: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
-            art: `url('${chrome.runtime.getURL('assets/bg.png')}') center/cover fixed no-repeat`,
-            art2: `url('${chrome.runtime.getURL('assets/bg2.png')}') center/cover fixed no-repeat`
+            black: '#000',
+            royal: 'linear-gradient(to bottom, #2a0a13, #4d1d2b)',
+            frost: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
+            manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}')` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
         };
         bgLayer.style.background = themes[type] || themes.default;
+        bgLayer.style.backgroundSize = 'cover';
+        bgLayer.style.backgroundPosition = 'center';
         chrome.storage.local.set({ savedTheme: type });
     };
     document.getElementById('theme-select').onchange = (e) => updateTheme(e.target.value);
 
     // Effect Logic
     let effectInterval = null;
+    let thunderInterval = null;
     const startEffect = (type) => {
         if (effectInterval) clearInterval(effectInterval);
+        if (thunderInterval) clearInterval(thunderInterval);
         const effectLayer = document.getElementById('u-effect-layer');
         effectLayer.innerHTML = '';
         if (type === 'none') return;
 
-        const symbols = { stars: '⭐', hearts: '❤️', snow: '❄️', leaves: '🍂', coins: '💰' };
+        const symbols = {
+            magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸',
+            action: '🔥', matrix: '0', storm: '❄️'
+        };
+
         effectInterval = setInterval(() => {
             const p = document.createElement('div');
-            p.innerText = symbols[type];
-            p.style.cssText = `position:absolute; left:${Math.random()*100}%; top:-50px; font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.5+0.5}; user-select:none; animation: fallEffect ${Math.random()*3+3}s linear forwards;`;
+            let symbol = symbols[type];
+            if (type === 'matrix') symbol = Math.random() > 0.5 ? '1' : '0';
+
+            p.innerText = symbol;
+            let animation = type === 'action' ? 'rise' : 'fall';
+            if (type === 'matrix') animation = 'matrix-fall';
+
+            p.style.cssText = `
+                position:absolute; left:${Math.random()*100}%; top:${animation === 'rise' ? '105%' : '-50px'};
+                font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.6+0.4}; color:${type==='matrix'?'#0f0':''};
+                user-select:none; animation: ${animation} ${Math.random()*3+3}s linear forwards;
+            `;
             effectLayer.appendChild(p);
             setTimeout(() => p.remove(), 6000);
-        }, 300);
+        }, type === 'matrix' ? 100 : 300);
+
+        if (type === 'storm') {
+            thunderInterval = setInterval(() => {
+                if (Math.random() > 0.95) {
+                    const flash = document.createElement('div');
+                    flash.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.15); z-index:10000000; pointer-events:none;';
+                    document.body.appendChild(flash);
+                    setTimeout(() => flash.remove(), 100);
+                }
+            }, 500);
+        }
         chrome.storage.local.set({ savedEffect: type });
     };
     document.getElementById('effect-select').onchange = (e) => startEffect(e.target.value);
