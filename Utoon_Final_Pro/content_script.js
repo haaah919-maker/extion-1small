@@ -6,33 +6,20 @@
         if (chaptersList.length === 0) return;
 
         const chaptersContainer = document.querySelector('.listing-chapters_wrap') || document.querySelector('.main.version-chap');
-        if (chaptersContainer) {
-            const downloadAllBtn = document.createElement('button');
-            downloadAllBtn.innerText = "Download All Chapters (PDF)";
-            downloadAllBtn.style.cssText = "width: 100%; padding: 10px; margin-bottom: 10px; background: #7c3aed; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;";
-            downloadAllBtn.onclick = async () => {
-                if (!confirm("This will start downloading ALL chapters. Continue?")) return;
-                const buttons = document.querySelectorAll('.utoon-pdf-btn');
-                for (const btn of buttons) {
-                    btn.click();
-                    await new Promise(r => setTimeout(r, 2000)); // Gap to avoid rate limiting/browser hang
-                }
-            };
-            chaptersContainer.prepend(downloadAllBtn);
-        }
 
         chaptersList.forEach(li => {
             const a = li.querySelector('a');
             if (!a) return;
 
             const btnContainer = document.createElement('span');
-            btnContainer.style.cssText = "margin-left: 10px; display: inline-flex; gap: 5px;";
+            btnContainer.style.cssText = "margin-left: 10px; display: inline-flex; gap: 5px; vertical-align: middle;";
 
             const createBtn = (label, color, type) => {
                 const btn = document.createElement('button');
                 btn.className = type === 'pdf' ? 'utoon-pdf-btn' : '';
                 btn.innerText = label;
-                btn.style.cssText = `background: ${color}; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;`;
+                btn.style.cssText = `background: ${color}; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; height: 25px;`;
+
                 btn.onclick = async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -42,9 +29,26 @@
 
                     try {
                         const chapterUrl = a.href;
-                        const pathParts = new URL(chapterUrl).pathname.split('/').filter(Boolean);
-                        const mSlug = pathParts[pathParts.length - 2];
-                        const cSlug = pathParts[pathParts.length - 1];
+                        let mSlug, cSlug;
+
+                        if (chapterUrl === "#" || chapterUrl.includes("javascript:void(0)")) {
+                            // Locked chapter: get slug from text or parent
+                            const pathParts = window.location.pathname.split('/').filter(Boolean);
+                            mSlug = pathParts[pathParts.length - 1];
+                            cSlug = a.innerText.trim().toLowerCase().replace(/\s+/g, '-');
+                        } else {
+                            const pathParts = new URL(chapterUrl).pathname.split('/').filter(Boolean);
+                            mSlug = pathParts[pathParts.length - 2];
+                            cSlug = pathParts[pathParts.length - 1];
+                        }
+
+                        if (type === 'read') {
+                            // Custom action for Reading
+                            window.UtoonStartReader(mSlug, cSlug);
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                            return;
+                        }
 
                         const mangaApiUrl = `https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mSlug}/`;
                         const mRes = await fetch(mangaApiUrl);
@@ -63,23 +67,39 @@
                         chrome.runtime.sendMessage({
                             action: "bulk_download",
                             images: imgs,
-                            name: `${mSlug}_\`,
+                            name: `${mSlug}_${cSlug}`,
                             type: type
                         });
                         btn.innerText = "Done";
-                    } catch (err) { btn.innerText = "!"; }
+                    } catch (err) {
+                        console.error(err);
+                        btn.innerText = "!";
+                    }
                     setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 3000);
                 };
                 return btn;
             };
 
+            // Add Read button (Green)
+            btnContainer.appendChild(createBtn("Read", "#10b981", "read"));
+            // Add PDF button (Pink)
             btnContainer.appendChild(createBtn("PDF", "#db2777", "pdf"));
+            // Add ZIP button (Purple)
             btnContainer.appendChild(createBtn("ZIP", "#7c3aed", "zip"));
+
             li.appendChild(btnContainer);
         });
     }
 
     injectBulkDownloadButtons();
+
+    // Export Start Reader function
+    window.UtoonStartReader = (mSlug, cSlug) => {
+        window.history.pushState({}, '', `/manga/${mSlug}/${cSlug}/`);
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('reader_logic.js');
+        (document.head || document.documentElement).appendChild(script);
+    };
 
     if (document.querySelector('.read-container') || document.querySelector('.wp-manga-chapter-img')) {
         const script = document.createElement('script');
