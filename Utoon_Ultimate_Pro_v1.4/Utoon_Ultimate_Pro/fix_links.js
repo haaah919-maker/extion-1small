@@ -7,11 +7,24 @@
         if (!mangaSlug || window.location.pathname.includes('/chapter-')) return;
 
         document.querySelectorAll('li.wp-manga-chapter').forEach(li => {
-            // Apply visual indication that extension is active
-            li.style.border = '2px solid #7c3aed';
+            // Purple gradient border
+            li.style.border = '2px solid transparent';
+            li.style.backgroundImage = 'linear-gradient(rgba(10, 5, 20, 0.95), rgba(10, 5, 20, 0.95)), linear-gradient(135deg, #a855f7, #7c3aed)';
+            li.style.backgroundOrigin = 'border-box';
+            li.style.backgroundClip = 'padding-box, border-box';
             li.style.borderRadius = '8px';
             li.style.margin = '5px 0';
-            li.style.transition = '0.3s';
+            li.style.transition = '0.3s ease';
+
+            li.addEventListener('mouseenter', () => {
+                li.style.boxShadow = '0 8px 16px rgba(168, 85, 247, 0.3)';
+                li.style.transform = 'translateY(-2px)';
+            });
+
+            li.addEventListener('mouseleave', () => {
+                li.style.boxShadow = 'none';
+                li.style.transform = 'translateY(0)';
+            });
 
             if (li.dataset.ghost_injected) return;
             
