@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,88 +12,64 @@
         }
 
         body {
-            width: 400px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            width: 380px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0514 0%, #1a0d2e 100%);
+            color: #e2d9f3;
             padding: 24px;
-            min-height: 500px;
-            direction: rtl;
+            min-height: 520px;
+            overflow-y: auto;
         }
 
         /* Header */
         .header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
 
         .logo {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-            border-radius: 12px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
-            font-size: 28px;
-            font-weight: bold;
-            box-shadow: 0 8px 16px rgba(6, 182, 212, 0.2);
+            font-size: 36px;
+            box-shadow: 0 12px 24px rgba(168, 85, 247, 0.25);
+            border: 1px solid rgba(168, 85, 247, 0.3);
         }
 
-        .header h1 {
-            font-size: 24px;
+        h1 {
+            font-size: 26px;
             font-weight: 700;
-            color: #f1f5f9;
-            margin-bottom: 8px;
+            color: #fff;
+            margin-bottom: 6px;
             letter-spacing: -0.5px;
         }
 
-        .header p {
+        .subtitle {
             font-size: 13px;
-            color: #94a3b8;
+            color: #a0aec0;
             font-weight: 400;
         }
 
-        /* Stats Section */
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            background: rgba(30, 41, 59, 1);
-            border-color: rgba(6, 182, 212, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-bottom: 4px;
+        .version-badge {
+            display: inline-block;
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 10px;
+            margin-top: 10px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .stat-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: #06b6d4;
-        }
-
-        /* Main Buttons */
+        /* Button Group */
         .button-group {
             display: flex;
             flex-direction: column;
@@ -117,6 +93,7 @@
             letter-spacing: 0.5px;
             position: relative;
             overflow: hidden;
+            color: white;
         }
 
         .btn::before {
@@ -128,23 +105,27 @@
             height: 100%;
             background: rgba(255, 255, 255, 0.1);
             transition: left 0.3s ease;
-            z-index: -1;
+            z-index: 0;
         }
 
         .btn:hover::before {
             left: 100%;
         }
 
+        .btn > * {
+            position: relative;
+            z-index: 1;
+        }
+
         /* Primary Button */
         .btn-primary {
-            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-            color: white;
-            box-shadow: 0 8px 16px rgba(6, 182, 212, 0.25);
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            box-shadow: 0 8px 16px rgba(168, 85, 247, 0.25);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(6, 182, 212, 0.35);
+            box-shadow: 0 12px 24px rgba(168, 85, 247, 0.35);
         }
 
         .btn-primary:active {
@@ -153,38 +134,19 @@
 
         /* Secondary Button */
         .btn-secondary {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            color: white;
-            box-shadow: 0 8px 16px rgba(139, 92, 246, 0.25);
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 8px 16px rgba(124, 58, 237, 0.25);
         }
 
         .btn-secondary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(139, 92, 246, 0.35);
-        }
-
-        /* Tertiary Button */
-        .btn-tertiary {
-            background: rgba(30, 41, 59, 0.8);
-            color: #e2e8f0;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-        }
-
-        .btn-tertiary:hover {
-            background: rgba(51, 65, 85, 0.8);
-            border-color: rgba(148, 163, 184, 0.4);
-            transform: translateY(-2px);
-        }
-
-        /* Icon */
-        .icon {
-            font-size: 16px;
+            box-shadow: 0 12px 24px rgba(124, 58, 237, 0.35);
         }
 
         /* Features Section */
         .features {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(30, 27, 50, 0.5);
+            border: 1px solid rgba(168, 85, 247, 0.2);
             border-radius: 10px;
             padding: 16px;
             margin-bottom: 20px;
@@ -194,10 +156,13 @@
         .features-title {
             font-size: 12px;
             font-weight: 600;
-            color: #94a3b8;
+            color: #d8b4fe;
             margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .feature-item {
@@ -213,20 +178,21 @@
             margin-bottom: 0;
         }
 
-        .feature-icon {
+        .feature-check {
             flex-shrink: 0;
-            color: #06b6d4;
+            color: #a855f7;
             font-weight: bold;
+            font-size: 14px;
         }
 
         /* Footer */
         .footer {
             text-align: center;
             padding-top: 16px;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            border-top: 1px solid rgba(168, 85, 247, 0.15);
         }
 
-        .version {
+        .version-text {
             font-size: 11px;
             color: #64748b;
             margin-bottom: 8px;
@@ -235,46 +201,50 @@
         .social-links {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .social-link {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: rgba(148, 163, 184, 0.1);
-            color: #94a3b8;
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #d8b4fe;
             text-decoration: none;
             transition: all 0.3s ease;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         .social-link:hover {
-            background: #06b6d4;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
             color: white;
+            border-color: transparent;
             transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(168, 85, 247, 0.25);
         }
 
-        /* Scrollbar Styling */
+        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(148, 163, 184, 0.05);
-            border-radius: 10px;
+            background: rgba(168, 85, 247, 0.05);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.2);
+            background: rgba(168, 85, 247, 0.3);
             border-radius: 10px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 0.4);
+            background: rgba(168, 85, 247, 0.5);
         }
 
         /* Animations */
@@ -292,6 +262,11 @@
         body {
             animation: slideIn 0.3s ease-out;
         }
+
+        /* Icon styling */
+        .icon {
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -299,61 +274,50 @@
     <div class="header">
         <div class="logo">📖</div>
         <h1>Utoon Ultimate Pro</h1>
-        <p>قارئ المانهوا المتقدم</p>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-label">النسخة</div>
-            <div class="stat-value">1.4</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">الحالة</div>
-            <div class="stat-value">نشط ✓</div>
-        </div>
+        <p class="subtitle">Advanced Manga Reader</p>
+        <div class="version-badge">v1.4 - Purple Edition</div>
     </div>
 
     <!-- Main Buttons -->
     <div class="button-group">
         <button id="inject-btn" class="btn btn-primary">
-            <span class="icon">▶</span>
-            <span>فتح القارئ</span>
+            <span class="icon">▶️</span>
+            <span>Open Reader</span>
         </button>
         <button id="discord-btn" class="btn btn-secondary">
             <span class="icon">💬</span>
-            <span>انضم للديسكورد</span>
+            <span>Join Discord @threads</span>
         </button>
     </div>
 
     <!-- Features -->
     <div class="features">
-        <div class="features-title">✨ المميزات</div>
+        <div class="features-title">✨ Features</div>
         <div class="feature-item">
-            <span class="feature-icon">✓</span>
-            <span>قراءة سلسة وسريعة</span>
+            <span class="feature-check">✓</span>
+            <span>Auto-scroll to first image</span>
         </div>
         <div class="feature-item">
-            <span class="feature-icon">✓</span>
-            <span>تحميل الفصول بسهولة</span>
+            <span class="feature-check">✓</span>
+            <span>Multiple theme options</span>
         </div>
         <div class="feature-item">
-            <span class="feature-icon">✓</span>
-            <span>واجهة حديثة وعصرية</span>
+            <span class="feature-check">✓</span>
+            <span>Download ZIP & PDF</span>
         </div>
         <div class="feature-item">
-            <span class="feature-icon">✓</span>
-            <span>دعم العديد من المواقع</span>
+            <span class="feature-check">✓</span>
+            <span>Visual effects support</span>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        <div class="version">الإصدار 1.4 | 2026</div>
+        <div class="version-text">Utoon Ultimate Pro © 2026</div>
         <div class="social-links">
-            <a href="#" class="social-link" title="Discord">D</a>
-            <a href="#" class="social-link" title="Twitter">𝕏</a>
-            <a href="#" class="social-link" title="GitHub">⚙</a>
+            <a href="#" class="social-link" title="Discord">💬</a>
+            <a href="#" class="social-link" title="Website">🌐</a>
+            <a href="#" class="social-link" title="Settings">⚙️</a>
         </div>
     </div>
 
