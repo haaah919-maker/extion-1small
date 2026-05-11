@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Utoon Reader Pro Max",
+  "version": "3.3",
+  "description": "Legendary Manga Reading Experience with API Extraction, Multi-Download, and Ghost Buttons.",
+  "permissions": ["activeTab", "scripting", "tabs", "storage", "unlimitedStorage"],
+  "host_permissions": [
+    "https://utoon.net/*",
+    "https://hqzwcuhiucqyyzjxpjlk.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon.png"
+    }
+  },
+  "icons": {
+    "128": "icons/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://utoon.net/*"],
+      "js": ["jszip.min.js", "jspdf.min.js", "bulk_helper.js", "content_script.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "icons/*", "jszip.min.js", "jspdf.min.js", "bundle_reader.js", "reader_logic.js"],
+      "matches": ["https://utoon.net/*"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Utoon Reader Pro",
+  "version": "2.7",
+  "description": "Fixed detection using scraper logic - detects free vs premium chapters accurately",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://utoon.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
