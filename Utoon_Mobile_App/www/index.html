@@ -49,29 +49,12 @@
         <span style="font-weight: bold; margin-left: auto;">Utoon Pro Mobile</span>
     </div>
     <div id="webview-container">
-        <!-- In a real Capacitor app, this would be the Native WebView.
-             Here we use an iframe for simulation or just assume the native bridge. -->
         <iframe id="utoon-frame" src="https://utoon.net" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
     </div>
-
     <script>
         const frame = document.getElementById('utoon-frame');
-
-        document.getElementById('back-btn').onclick = () => {
-            try {
-                frame.contentWindow.history.back();
-            } catch (e) {
-                // Handle cross-origin if simulation fails
-                window.history.back();
-            }
-        };
-
-        document.getElementById('refresh-btn').onclick = () => {
-            frame.src = frame.src;
-        };
-
-        // Note: Script injection on cross-origin iframes is blocked by browsers.
-        // The real injection logic happens in the Native Android/iOS layer.
+        document.getElementById('back-btn').onclick = () => { frame.contentWindow.history.back(); };
+        document.getElementById('refresh-btn').onclick = () => { frame.src = frame.src; };
     </script>
 </body>
 </html>

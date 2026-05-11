@@ -2,7 +2,7 @@
     if (window._u_reader_injected) return;
     window._u_reader_injected = true;
 
-    console.log("Utoon Ultimate Pro: Reader Logic Active");
+    console.log("Utoon Ultimate Pro Final: Reader Logic Active");
 
     const storageData = await new Promise(r => {
         if (typeof chrome !== 'undefined' && chrome.storage) {
@@ -13,7 +13,7 @@
     });
 
     const baseUrl = "https://utoon.net/wp-content/uploads/WP-manga/data";
-    const config = {
+    const config = storageData.remoteConfig || {
         ad_key: "0a114f2d33838c1067127b2d044f30bd4484",
         smart_link: "https://www.profitablecpmratenetwork.com/e3gps5kmvj?key=911ee19ed1bd0c121fd562fdccbb0c26"
     };
@@ -98,81 +98,58 @@
 
     const coverImg = document.querySelector('meta[property="og:image"]')?.content || '';
 
-    // Clear UI and Inject Reader
-    document.body.innerHTML = '';
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.background = '#000';
-    document.body.style.overflow = 'auto';
-
-    const style = document.createElement('style');
-    style.innerHTML = `
-        body { font-family: 'Inter', sans-serif; color: white; }
-        .u-btn-nav { padding: 12px 30px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; font-size: 14px; }
-        .u-btn-nav:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.1); }
-        .u-btn-nav:disabled { background: #475569 !important; cursor: not-allowed; opacity: 0.5; }
-        .u-header-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
-        .u-header-btn:hover { background: rgba(255,255,255,0.2); }
-        .u-header-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .u-control-group { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.3); }
-        .u-select { background: transparent; color: white; border: none; font-size: 11px; cursor: pointer; outline: none; }
-        .u-select option { background: #0a0519; color: white; }
-        .u-action-btn { background: #7c3aed; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
-        .u-action-btn:hover { background: #6d28d9; }
-
-        @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
-        @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
-        @keyframes matrix-fall { to { transform: translateY(110vh); } }
-    `;
-    document.head.appendChild(style);
-
     const readerHTML = `
-        <div id="u-reader-main" style="position: relative; width: 100%; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden;">
-            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a); background-size: cover; background-position: center; background-attachment: fixed;"></div>
-            <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000;"></div>
+        <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; align-items: center; transition: 0.5s; overflow-x: hidden;">
 
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.95); padding: 10px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(12px);">
+            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a);"></div>
+            <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000; overflow:hidden;"></div>
 
-                <div style="display:flex; gap:6px;">
-                    <button id="header-prev" class="u-header-btn">PREV</button>
-                    <button id="header-next" class="u-header-btn">NEXT</button>
+            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); padding: 15px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(10px); box-shadow: 0 4px 32px rgba(0,0,0,0.5);">
+
+                <div class="u-control-group" style="display:flex; align-items:center; gap:10px;">
+                    <button id="header-prev" class="u-header-btn" style="background: #475569; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;">PREV</button>
+                    <button id="header-next" class="u-header-btn" style="background: #7c3aed; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;">NEXT</button>
                 </div>
 
-                <div style="width:1px; height:20px; background:rgba(255,255,255,0.15);"></div>
+                <div class="u-divider" style="width:1px; height:25px; background:rgba(255,255,255,0.1);"></div>
 
-                <div class="u-control-group">
-                    <button id="auto-scroll-btn" style="background:none; border:none; color:white; cursor:pointer; font-size:14px; padding:0 5px;"><span id="scroll-icon">▶</span></button>
-                    <input type="number" id="scroll-speed" value="2" min="1" max="10" style="width:35px; background:none; border:none; color:white; font-size:11px; text-align:center;">
+                <button id="btn-zip" style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s;">ZIP</button>
+                <button id="btn-pdf" style="background: linear-gradient(135deg, #db2777, #9d174d); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s;">PDF</button>
+
+                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
+                    <button id="auto-scroll-btn" style="background:transparent; border:none; color:white; cursor:pointer; font-size:18px;"><span id="scroll-icon">▶</span></button>
+                    <input type="number" id="scroll-speed" value="2" min="1" max="10" style="width:40px; background:transparent; border:none; color:white; text-align:center; font-weight:bold; outline:none;">
                 </div>
 
-                <button id="btn-zip" class="u-action-btn" style="background:#2563eb;">ZIP</button>
-                <button id="btn-pdf" class="u-action-btn" style="background:#db2777;">PDF</button>
-
-                <div class="u-control-group">
-                    <select id="effect-select" class="u-select">
-                        <option value="none">No Effect</option>
-                        <option value="magic">Magic ✨</option>
-                        <option value="cosmic">Cosmic 🌌</option>
-                        <option value="hearts">Hearts ❤️</option>
-                        <option value="gold">Gold 💰</option>
-                        <option value="sakura">Sakura 🌸</option>
-                        <option value="action">Action 🔥</option>
-                        <option value="matrix">Matrix 🟢</option>
-                        <option value="storm">Storm ⚡</option>
+                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
+                    <span style="font-size:11px; font-weight:bold;">Effect:</span>
+                    <select id="effect-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:13px; outline:none;">
+                        <option value="none" style="color:#000">None</option>
+                        <option value="magic" style="color:#000">Magic ✨</option>
+                        <option value="cosmic" style="color:#000">Cosmic 🌌</option>
+                        <option value="hearts" style="color:#000">Hearts ❤️</option>
+                        <option value="gold" style="color:#000">Gold 💰</option>
+                        <option value="sakura" style="color:#000">Sakura 🌸</option>
+                        <option value="action" style="color:#000">Action 🔥</option>
+                        <option value="matrix" style="color:#000">Matrix 🟢</option>
+                        <option value="storm" style="color:#000">Storm ❄️</option>
                     </select>
                 </div>
 
-                <div class="u-control-group">
-                    <select id="theme-select" class="u-select">
-                        <option value="default">Purple</option>
-                        <option value="black">Black</option>
-                        <option value="royal">Royal Wine</option>
-                        <option value="frost">Frost</option>
-                        <option value="manga">Manga Cover</option>
+                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
+                    <span style="font-size:11px; font-weight:bold;">Theme:</span>
+                    <select id="theme-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:13px; outline:none;">
+                        <option value="default" style="color:#000">Purple</option>
+                        <option value="black" style="color:#000">Black</option>
+                        <option value="royal" style="color:#000">Royal Wine</option>
+                        <option value="frost" style="color:#000">Frost</option>
+                        <option value="art" style="color:#000">Art BG 1</option>
+                        <option value="art2" style="color:#000">Art BG 2</option>
+                        <option value="manga" style="color:#000">Manga Cover</option>
                     </select>
                 </div>
 
-                <button id="exit-btn" class="u-header-btn" style="background: #ef4444; border:none;">EXIT</button>
+                <button id="exit-btn" class="u-header-btn" style="background: #ef4444; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">EXIT</button>
             </div>
 
             <div id="loader-msg" style="position:fixed; bottom:20px; right:20px; background:#7c3aed; padding:10px 20px; border-radius:8px; display:none; z-index:10000005; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5);"></div>
@@ -181,11 +158,18 @@
                 ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block; min-height:200px;" onerror="this.remove()">`).join('')}
 
                 <div id="nav-footer" style="padding: 40px 20px; display: flex; justify-content: center; gap: 25px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #7c3aed;">
-                    <button id="footer-prev" class="u-btn-nav" style="background: #475569;">PREVIOUS CHAPTER</button>
-                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed;">NEXT CHAPTER</button>
+                    <button id="footer-prev" class="u-btn-nav" style="background: #475569; border:none; padding:12px 24px; border-radius:8px; color:white; cursor:pointer; font-weight:bold;">PREVIOUS CHAPTER</button>
+                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed; border:none; padding:12px 24px; border-radius:8px; color:white; cursor:pointer; font-weight:bold;">NEXT CHAPTER</button>
                 </div>
             </div>
         </div>
+        <style>
+            @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+            @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
+            @keyframes matrix-fall { to { transform: translateY(110vh); opacity: 0; } }
+            .u-btn-nav:hover { opacity: 0.9; transform: translateY(-2px); transition: 0.2s; }
+            .u-header-btn:hover { filter: brightness(1.1); }
+        </style>
     `;
 
     document.body.innerHTML = readerHTML;
@@ -201,11 +185,15 @@
             hNext.onclick = fNext.onclick = () => window.location.href = nextUrl;
         } else {
             hNext.disabled = fNext.disabled = true;
+            hNext.style.opacity = '0.5';
+            fNext.style.opacity = '0.5';
         }
         if (prevUrl) {
             hPrev.onclick = fPrev.onclick = () => window.location.href = prevUrl;
         } else {
             hPrev.disabled = fPrev.disabled = true;
+            hPrev.style.opacity = '0.5';
+            fPrev.style.opacity = '0.5';
         }
     };
     setupNav();
@@ -295,7 +283,9 @@
             black: '#000',
             royal: 'linear-gradient(to bottom, #2a0a13, #4d1d2b)',
             frost: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
-            manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}')` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
+            art: `url('${chrome.runtime.getURL('assets/bg.png')}') center/cover fixed no-repeat`,
+            art2: `url('${chrome.runtime.getURL('assets/bg2.png')}') center/cover fixed no-repeat`,
+            manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}') center/cover fixed no-repeat` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
         };
         bgLayer.style.background = themes[type] || themes.default;
         bgLayer.style.backgroundSize = 'cover';
