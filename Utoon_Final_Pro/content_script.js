@@ -114,6 +114,8 @@
                 const btn = document.createElement('button');
                 btn.className = `utoon-btn utoon-btn-${type}`;
                 btn.innerText = label;
+                btn.setAttribute('aria-label', `${label} Chapter`);
+                btn.setAttribute('title', `${label} Chapter`);
 
                 btn.onclick = async (e) => {
                     e.preventDefault();
