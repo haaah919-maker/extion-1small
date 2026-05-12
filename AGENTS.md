@@ -25,3 +25,7 @@ Utoon Ultimate Pro is a Manifest V3 Chrome Extension and a Capacitor-based Mobil
 - **Utoon_Mobile_App/electron/**: Electron source for Windows/Desktop app.
   - **src/index.js**: Electron main process with `did-finish-load` listener for script injection.
   - **assets/**: Bundled scripts for the desktop app.
+
+## Building the Desktop App
+- Use `electron-builder` via `npm run dist` in the `Utoon_Mobile_App/electron` folder.
+- Output: `dist/Utoon Ultimate Pro 2.0.0.exe` (Portable).
