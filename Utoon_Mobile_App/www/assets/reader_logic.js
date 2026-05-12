@@ -104,7 +104,20 @@
             <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a);"></div>
             <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000; overflow:hidden;"></div>
 
+            <!-- Chapter Side Panel -->
+            <div id="chapter-panel" style="position:fixed; top:0; left:-300px; width:300px; height:100%; background:rgba(19, 10, 42, 0.95); z-index:10000002; transition:0.3s; overflow-y:auto; border-right:2px solid #7c3aed; backdrop-filter:blur(10px); padding:20px 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0; color:#7c3aed;">CHAPTERS</h3>
+                    <button id="close-panel" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+                </div>
+                <div id="chapter-list-container"></div>
+            </div>
+
             <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); padding: 15px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(10px); box-shadow: 0 4px 32px rgba(0,0,0,0.5);">
+
+                <button id="open-chapters" class="u-header-btn" style="background:#7c3aed; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">CHAPTERS</button>
+
+                <div class="u-divider" style="width:1px; height:25px; background:rgba(255,255,255,0.1);"></div>
 
                 <div class="u-control-group" style="display:flex; align-items:center; gap:10px;">
                     <button id="header-prev" class="u-header-btn" style="background: #475569; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;">PREV</button>
@@ -133,6 +146,7 @@
                         <option value="action" style="color:#000">Action 🔥</option>
                         <option value="matrix" style="color:#000">Matrix 🟢</option>
                         <option value="storm" style="color:#000">Storm ❄️</option>
+                        <option value="romance" style="color:#000">Romance ❄</option>
                     </select>
                 </div>
 
@@ -169,10 +183,35 @@
             @keyframes matrix-fall { to { transform: translateY(110vh); opacity: 0; } }
             .u-btn-nav:hover { opacity: 0.9; transform: translateY(-2px); transition: 0.2s; }
             .u-header-btn:hover { filter: brightness(1.1); }
+            .ch-row { padding: 12px 15px; border-bottom: 1px solid rgba(124, 58, 237, 0.2); cursor: pointer; transition: 0.2s; color: #e2d9f3; font-size: 14px; }
+            .ch-row:hover { background: rgba(124, 58, 237, 0.1); padding-left: 20px; }
+            .ch-row.active { background: #7c3aed; color: white; font-weight: bold; }
         </style>
     `;
 
     document.body.innerHTML = readerHTML;
+
+    // Side Panel Logic
+    const panel = document.getElementById('chapter-panel');
+    const openBtn = document.getElementById('open-chapters');
+    const closeBtn = document.getElementById('close-panel');
+    const chContainer = document.getElementById('chapter-list-container');
+
+    const togglePanel = (show) => {
+        panel.style.left = show ? '0' : '-300px';
+    };
+    openBtn.onclick = () => togglePanel(true);
+    closeBtn.onclick = () => togglePanel(false);
+
+    allChapters.forEach(ch => {
+        const row = document.createElement('div');
+        row.className = 'ch-row' + (ch.slug === chapterSlug ? ' active' : '');
+        row.innerText = ch.nombre;
+        row.onclick = () => {
+            window.location.href = `${window.location.origin}/manga/${mangaSlug}/${ch.slug}/`;
+        };
+        chContainer.appendChild(row);
+    });
 
     // Navigation Logic
     const setupNav = () => {
@@ -239,7 +278,7 @@
         if (type === 'none') return;
 
         const symbols = {
-            magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸',
+            magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸', romance: '❄️',
             action: '🔥', matrix: '0', storm: '❄️'
         };
 
