@@ -1,0 +1,11 @@
+{
+  "name": "utoon-pro-desktop",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^25.0.0"
+  }
+}

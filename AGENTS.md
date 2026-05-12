@@ -20,3 +20,8 @@ Utoon Ultimate Pro is a Manifest V3 Chrome Extension and a Capacitor-based Mobil
 
 ## Testing Locally (Mobile)
 1. The mobile app logic is in `MainActivity.java`. It intercepts the WebView to inject scripts on chapter pages.
+
+## Electron (Desktop) Support
+- **Utoon_Mobile_App/electron/**: Electron source for Windows/Desktop app.
+  - **src/index.js**: Electron main process with `did-finish-load` listener for script injection.
+  - **assets/**: Bundled scripts for the desktop app.
