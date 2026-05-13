@@ -1,31 +1,27 @@
-# AGENTS.md — Utoon Ultimate Pro Extension & Mobile App
+# Utoon Ultimate Pro Unified v2.1
 
-## Project Overview
-Utoon Ultimate Pro is a Manifest V3 Chrome Extension and a Capacitor-based Mobile App designed to enhance the reading experience on [utoon.net](https://utoon.net).
+## Project Structure
+- **Utoon_Ultimate_Pro_Final/**: Consolidated Chrome Extension.
+  - `reader_logic.js`: Unified core script (Reader + Effects + Themes + Navigation).
+  - `fix_links.js`: Content script for unlocking links on manga pages.
+- **Utoon_Mobile_App/**: Capacitor Mobile App and Electron Desktop App.
+  - `electron/`: PC (Windows) source.
+  - `android/`: Mobile (Android) source.
 
-## File Structure
-- **Utoon_Ultimate_Pro_Final/**: Consolidated Chrome Extension source.
-  - **manifest.json**: Extension config.
-  - **background.js**: Auto-injection logic.
-  - **reader_logic.js**: Core reader UI.
-- **Utoon_Mobile_App/**: Capacitor Mobile App source.
-  - **android/app/src/main/java/com/utoon/app/MainActivity.java**: Native URL Listener and Script Injection logic.
-  - **www/index.html**: Mobile app UI.
+## Features
+- Functional CHAPTERS button with side panel.
+- Functional NEXT/PREV and EXIT buttons.
+- High-quality effects: Matrix, Magic, Storm, Sakura, Romance.
+- Themes: Purple, Black, Manga Cover, Frost.
+- Integrated high-speed ZIP/PDF download.
+- Universal storage (Extension & App support).
 
-## Key APIs
-- **Internal API**: `https://utoon.net/wp-json/icmadara/v1/`
+## Building PC Version
+1. `cd Utoon_Mobile_App/electron`
+2. `npm install`
+3. `npm run dist` (portable .exe in dist/)
 
-## Testing Locally (Extension)
-1. Load unpacked extension from `Utoon_Ultimate_Pro_Final` in Chrome.
-
-## Testing Locally (Mobile)
-1. The mobile app logic is in `MainActivity.java`. It intercepts the WebView to inject scripts on chapter pages.
-
-## Electron (Desktop) Support
-- **Utoon_Mobile_App/electron/**: Electron source for Windows/Desktop app.
-  - **src/index.js**: Electron main process with `did-finish-load` listener for script injection.
-  - **assets/**: Bundled scripts for the desktop app.
-
-## Building the Desktop App
-- Use `electron-builder` via `npm run dist` in the `Utoon_Mobile_App/electron` folder.
-- Output: `dist/Utoon Ultimate Pro 2.0.0.exe` (Portable).
+## Building Mobile Version
+1. `cd Utoon_Mobile_App`
+2. `npx cap sync android`
+3. Build in Android Studio.

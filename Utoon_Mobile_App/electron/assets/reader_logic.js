@@ -1,405 +1,238 @@
 (async function() {
-    if (window._u_reader_injected) return;
-    window._u_reader_injected = true;
+    if (window._u_unified_active) return;
+    window._u_unified_active = true;
 
-    console.log("Utoon Ultimate Pro Final: Reader Logic Active");
+    console.log("Utoon Pro Ultimate: Unified v2.1 Active");
 
-    const storageData = await new Promise(r => {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            chrome.storage.local.get(null, r);
-        } else {
-            r({});
-        }
-    });
-
-    const baseUrl = "https://utoon.net/wp-content/uploads/WP-manga/data";
-    const config = storageData.remoteConfig || {
-        ad_key: "0a114f2d33838c1067127b2d044f30bd4484",
-        smart_link: "https://www.profitablecpmratenetwork.com/e3gps5kmvj?key=911ee19ed1bd0c121fd562fdccbb0c26"
+    // --- Dynamic Storage ---
+    const isExt = (typeof chrome !== 'undefined' && chrome.storage);
+    const getStorage = async (k) => {
+        if (isExt) return new Promise(r => chrome.storage.local.get(k, r));
+        let res = {}; (Array.isArray(k) ? k : [k]).forEach(i => { try { res[i] = JSON.parse(localStorage.getItem(i)); } catch(e) { res[i] = localStorage.getItem(i); } });
+        return res;
+    };
+    const setStorage = async (o) => {
+        if (isExt) return chrome.storage.local.set(o);
+        for (let k in o) localStorage.setItem(k, typeof o[k] === 'object' ? JSON.stringify(o[k]) : o[k]);
     };
 
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const mangaSlug = pathParts[pathParts.length - 2];
-    const chapterSlug = pathParts[pathParts.length - 1];
-    const mangaMainUrl = window.location.origin + '/manga/' + mangaSlug + '/';
+    // --- URL Parsing ---
+    const path = window.location.pathname.split('/').filter(Boolean);
+    const isChapter = window.location.pathname.includes('/chapter-');
+    const isManga = window.location.pathname.includes('/manga/') && !isChapter;
+    const mSlug = isChapter ? path[path.length-2] : path[path.length-1];
+    const cSlug = path.find(p => p.startsWith('chapter-'));
 
-    let allChapters = [];
-    let nextUrl = null;
-    let prevUrl = null;
+    // --- Injection: Manga Page ---
+    function injectMangaLinkFixes() {
+        if (!isManga) return;
+        document.querySelectorAll('li.wp-manga-chapter').forEach(li => {
+            if (li.dataset.u_injected) return;
+            const a = li.querySelector('a'); if (!a) return;
+            let slug; try { slug = new URL(a.href).pathname.split('/').filter(Boolean).pop(); } catch(e) {}
+            if (!slug) slug = a.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            li.dataset.u_injected = "1";
+            li.style.cssText = "position:relative; border:1px solid #7c3aed; border-radius:8px; margin:4px 0; background:rgba(124,58,237,0.1); transition:0.3s;";
+            li.onmouseenter = () => li.style.background = "rgba(124,58,237,0.2)";
+            li.onmouseleave = () => li.style.background = "rgba(124,58,237,0.1)";
+            const ghost = document.createElement('a');
+            ghost.href = window.location.origin + '/manga/' + mSlug + '/' + slug + '/';
+            ghost.style.cssText = "position:absolute; inset:0; z-index:99; cursor:pointer;";
+            ghost.onclick = (e) => { e.preventDefault(); window.location.href = ghost.href; };
+            li.appendChild(ghost); a.style.pointerEvents = 'none';
+        });
+    }
 
-    async function fetchImagesAndNav() {
+    // --- Injection: Reader UI ---
+    async function initReader() {
+        if (!isChapter) return;
+
+        // Disable original page
+        const originalScroll = window.scrollY;
+
+        let allChapters = [], nextUrl = null, prevUrl = null, images = [];
         try {
-            const mangaApiUrl = `https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mangaSlug}/`;
-            const res = await fetch(mangaApiUrl, {headers: {'Accept': 'application/json'}});
-            if (!res.ok) throw new Error("Manga API failed");
-            const data = await res.json();
-            const mangaInfo = (data.mangas || [])[0];
-            if (!mangaInfo) throw new Error("Manga info not found");
-
-            allChapters = mangaInfo.capitulos || [];
-            allChapters.sort((a, b) => {
-                const aNum = parseFloat(a.nombre.match(/[\d.]+/)?.[0] || 0);
-                const bNum = parseFloat(b.nombre.match(/[\d.]+/)?.[0] || 0);
-                return aNum - bNum;
+            const apiRes = await fetch(`https://utoon.net/wp-json/icmadara/v1/mangas/slug/${mSlug}/`);
+            const apiData = await apiRes.json();
+            const info = apiData.mangas[0];
+            allChapters = info.capitulos.sort((a,b) => {
+                const nA = parseFloat(a.nombre.match(/[\d.]+/)?.[0] || 0);
+                const nB = parseFloat(b.nombre.match(/[\d.]+/)?.[0] || 0);
+                return nA - nB;
             });
-
-            const currentIndex = allChapters.findIndex(c => c.slug === chapterSlug || c.slug === chapterSlug.replace('.', '-'));
-
-            if (currentIndex !== -1) {
-                if (currentIndex < allChapters.length - 1) {
-                    const nextCh = allChapters[currentIndex + 1];
-                    nextUrl = `${window.location.origin}/manga/${mangaSlug}/${nextCh.slug}/`;
-                }
-                if (currentIndex > 0) {
-                    const prevCh = allChapters[currentIndex - 1];
-                    prevUrl = `${window.location.origin}/manga/${mangaSlug}/${prevCh.slug}/`;
-                }
+            const idx = allChapters.findIndex(c => c.slug === cSlug);
+            if (idx !== -1) {
+                if (idx < allChapters.length-1) nextUrl = window.location.origin + '/manga/' + mSlug + '/' + allChapters[idx+1].slug + '/';
+                if (idx > 0) prevUrl = window.location.origin + '/manga/' + mSlug + '/' + allChapters[idx-1].slug + '/';
+                const imgRes = await fetch(`https://utoon.net/wp-json/icmadara/v1/capitulo/${allChapters[idx].id_capitulo}/`);
+                const imgData = await imgRes.json();
+                images = (imgData.imagenes || imgData.images || []).map(i => typeof i === 'string' ? i : i.src);
             }
+        } catch(e) {}
 
-            const currentChObj = allChapters[currentIndex];
-            if (!currentChObj) throw new Error("Current chapter not found in API");
-
-            const imgApiUrl = `https://utoon.net/wp-json/icmadara/v1/capitulo/${currentChObj.id_capitulo}/`;
-            const imgRes = await fetch(imgApiUrl, {headers: {'Accept': 'application/json'}});
-            if (!imgRes.ok) throw new Error("Image API failed");
-            const imgData = await imgRes.json();
-            const rawList = imgData.imagenes || imgData.images || [];
-            return rawList.map(item => typeof item === 'string' ? item : (item.src || '')).filter(Boolean);
-        } catch(e) {
-            console.warn("API Fallback Triggered:", e.message);
-            return null;
-        }
-    }
-
-    function scrapeImages() {
-        const imgs = Array.from(document.querySelectorAll('.wp-manga-chapter-img, .read-container img, .page-break img'));
-        if (imgs.length > 0) {
-            return imgs.map(img => img.src || img.dataset.src).filter(Boolean);
-        }
-        return null;
-    }
-
-    let imageUrls = await fetchImagesAndNav();
-    if (!imageUrls || imageUrls.length === 0) {
-        imageUrls = scrapeImages();
-    }
-    if (!imageUrls || imageUrls.length === 0) {
-        imageUrls = [];
-        const extensions = ['jpg', 'webp', 'png', 'jpeg'];
-        for (let i = 1; i <= 150; i++) {
-            const n = i.toString().padStart(2, '0');
-            const n3 = i.toString().padStart(3, '0');
-            extensions.forEach(ext => {
-                imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n}.${ext}`);
-                imageUrls.push(`${baseUrl}/${mangaSlug}/${chapterSlug}/${n3}.${ext}`);
-            });
-        }
-    }
-
-    const coverImg = document.querySelector('meta[property="og:image"]')?.content || '';
-
-    const readerHTML = `
-        <div id="u-reader-main" style="background-color: #0a1014; color: #e2d9f3; display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 9999999; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; align-items: center; transition: 0.5s; overflow-x: hidden;">
-
-            <div id="u-bg-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; transition: 0.8s; background: linear-gradient(to bottom, #0a0514, #130a2a);"></div>
-            <div id="u-effect-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10000000; overflow:hidden;"></div>
-
-            <!-- Chapter Side Panel -->
-            <div id="chapter-panel" style="position:fixed; top:0; left:-300px; width:300px; height:100%; background:rgba(19, 10, 42, 0.95); z-index:10000002; transition:0.3s; overflow-y:auto; border-right:2px solid #7c3aed; backdrop-filter:blur(10px); padding:20px 10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3 style="margin:0; color:#7c3aed;">CHAPTERS</h3>
-                    <button id="close-panel" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
-                </div>
-                <div id="chapter-list-container"></div>
-            </div>
-
-            <div id="header-controls" style="position: sticky; top: 0; width: 100%; background: rgba(10, 5, 25, 0.9); padding: 15px; border-bottom: 2px solid #7c3aed; z-index: 10000001; display: flex; justify-content: center; align-items:center; gap: 15px; backdrop-filter: blur(10px); box-shadow: 0 4px 32px rgba(0,0,0,0.5);">
-
-                <button id="open-chapters" class="u-header-btn" style="background:#7c3aed; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">CHAPTERS</button>
-
-                <div class="u-divider" style="width:1px; height:25px; background:rgba(255,255,255,0.1);"></div>
-
-                <div class="u-control-group" style="display:flex; align-items:center; gap:10px;">
-                    <button id="header-prev" class="u-header-btn" style="background: #475569; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;">PREV</button>
-                    <button id="header-next" class="u-header-btn" style="background: #7c3aed; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;">NEXT</button>
-                </div>
-
-                <div class="u-divider" style="width:1px; height:25px; background:rgba(255,255,255,0.1);"></div>
-
-                <button id="btn-zip" style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s;">ZIP</button>
-                <button id="btn-pdf" style="background: linear-gradient(135deg, #db2777, #9d174d); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s;">PDF</button>
-
-                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
-                    <button id="auto-scroll-btn" style="background:transparent; border:none; color:white; cursor:pointer; font-size:18px;"><span id="scroll-icon">▶</span></button>
-                    <input type="number" id="scroll-speed" value="2" min="1" max="10" style="width:40px; background:transparent; border:none; color:white; text-align:center; font-weight:bold; outline:none;">
-                </div>
-
-                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
-                    <span style="font-size:11px; font-weight:bold;">Effect:</span>
-                    <select id="effect-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:13px; outline:none;">
-                        <option value="none" style="color:#000">None</option>
-                        <option value="magic" style="color:#000">Magic ✨</option>
-                        <option value="cosmic" style="color:#000">Cosmic 🌌</option>
-                        <option value="hearts" style="color:#000">Hearts ❤️</option>
-                        <option value="gold" style="color:#000">Gold 💰</option>
-                        <option value="sakura" style="color:#000">Sakura 🌸</option>
-                        <option value="action" style="color:#000">Action 🔥</option>
-                        <option value="matrix" style="color:#000">Matrix 🟢</option>
-                        <option value="storm" style="color:#000">Storm ❄️</option>
-                        <option value="romance" style="color:#000">Romance ❄</option>
-                    </select>
-                </div>
-
-                <div class="u-control-group" style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:10px; border:1px solid #7c3aed;">
-                    <span style="font-size:11px; font-weight:bold;">Theme:</span>
-                    <select id="theme-select" style="background:transparent; color:#fff; border:none; cursor:pointer; font-size:13px; outline:none;">
-                        <option value="default" style="color:#000">Purple</option>
-                        <option value="black" style="color:#000">Black</option>
-                        <option value="royal" style="color:#000">Royal Wine</option>
-                        <option value="frost" style="color:#000">Frost</option>
-                        <option value="art" style="color:#000">Art BG 1</option>
-                        <option value="art2" style="color:#000">Art BG 2</option>
-                        <option value="manga" style="color:#000">Manga Cover</option>
-                    </select>
-                </div>
-
-                <button id="exit-btn" class="u-header-btn" style="background: #ef4444; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">EXIT</button>
-            </div>
-
-            <div id="loader-msg" style="position:fixed; bottom:20px; right:20px; background:#7c3aed; padding:10px 20px; border-radius:8px; display:none; z-index:10000005; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.5);"></div>
-
-            <div id="img-container" style="max-width:900px; width:100%; margin:20px 0; background: rgba(0,0,0,0.8); box-shadow: 0 0 60px rgba(0,0,0,0.9); border-radius: 12px; overflow: hidden;">
-                ${imageUrls.map(s => `<img src="${s}" style="width:100%; display:block; min-height:200px;" onerror="this.remove()">`).join('')}
-
-                <div id="nav-footer" style="padding: 40px 20px; display: flex; justify-content: center; gap: 25px; background: rgba(10, 5, 25, 0.98); border-top: 2px solid #7c3aed;">
-                    <button id="footer-prev" class="u-btn-nav" style="background: #475569; border:none; padding:12px 24px; border-radius:8px; color:white; cursor:pointer; font-weight:bold;">PREVIOUS CHAPTER</button>
-                    <button id="footer-next" class="u-btn-nav" style="background: #7c3aed; border:none; padding:12px 24px; border-radius:8px; color:white; cursor:pointer; font-weight:bold;">NEXT CHAPTER</button>
-                </div>
-            </div>
-        </div>
-        <style>
-            @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
-            @keyframes rise { to { transform: translateY(-110vh) rotate(-360deg); } }
-            @keyframes matrix-fall { to { transform: translateY(110vh); opacity: 0; } }
-            .u-btn-nav:hover { opacity: 0.9; transform: translateY(-2px); transition: 0.2s; }
-            .u-header-btn:hover { filter: brightness(1.1); }
-            .ch-row { padding: 12px 15px; border-bottom: 1px solid rgba(124, 58, 237, 0.2); cursor: pointer; transition: 0.2s; color: #e2d9f3; font-size: 14px; }
-            .ch-row:hover { background: rgba(124, 58, 237, 0.1); padding-left: 20px; }
-            .ch-row.active { background: #7c3aed; color: white; font-weight: bold; }
-        </style>
-    `;
-
-    document.body.innerHTML = readerHTML;
-
-    // Side Panel Logic
-    const panel = document.getElementById('chapter-panel');
-    const openBtn = document.getElementById('open-chapters');
-    const closeBtn = document.getElementById('close-panel');
-    const chContainer = document.getElementById('chapter-list-container');
-
-    const togglePanel = (show) => {
-        panel.style.left = show ? '0' : '-300px';
-    };
-    openBtn.onclick = () => togglePanel(true);
-    closeBtn.onclick = () => togglePanel(false);
-
-    allChapters.forEach(ch => {
-        const row = document.createElement('div');
-        row.className = 'ch-row' + (ch.slug === chapterSlug ? ' active' : '');
-        row.innerText = ch.nombre;
-        row.onclick = () => {
-            window.location.href = `${window.location.origin}/manga/${mangaSlug}/${ch.slug}/`;
-        };
-        chContainer.appendChild(row);
-    });
-
-    // Navigation Logic
-    const setupNav = () => {
-        const hNext = document.getElementById('header-next');
-        const hPrev = document.getElementById('header-prev');
-        const fNext = document.getElementById('footer-next');
-        const fPrev = document.getElementById('footer-prev');
-
-        if (nextUrl) {
-            hNext.onclick = fNext.onclick = () => window.location.href = nextUrl;
-        } else {
-            hNext.disabled = fNext.disabled = true;
-            hNext.style.opacity = '0.5';
-            fNext.style.opacity = '0.5';
-        }
-        if (prevUrl) {
-            hPrev.onclick = fPrev.onclick = () => window.location.href = prevUrl;
-        } else {
-            hPrev.disabled = fPrev.disabled = true;
-            hPrev.style.opacity = '0.5';
-            fPrev.style.opacity = '0.5';
-        }
-    };
-    setupNav();
-
-    document.getElementById('exit-btn').onclick = () => { window.location.href = mangaMainUrl; };
-
-    // Auto Scroll Logic
-    let scrollInterval = null;
-    let lastInteraction = 0;
-    const scrollBtn = document.getElementById('auto-scroll-btn');
-    const scrollIcon = document.getElementById('scroll-icon');
-    const scrollSpeedInput = document.getElementById('scroll-speed');
-
-    const toggleScroll = () => {
-        if (scrollInterval) {
-            clearInterval(scrollInterval);
-            scrollInterval = null;
-            scrollIcon.innerText = '▶';
-            scrollBtn.style.color = 'white';
-        } else {
-            scrollIcon.innerText = '⏸';
-            scrollBtn.style.color = '#7c3aed';
-            scrollInterval = setInterval(() => {
-                if (Date.now() - lastInteraction > 1500) {
-                    window.scrollBy(0, parseInt(scrollSpeedInput.value));
-                }
-            }, 30);
-        }
-    };
-    ['mousemove', 'wheel', 'touchstart', 'keydown'].forEach(evt => {
-        window.addEventListener(evt, () => { lastInteraction = Date.now(); }, { passive: true });
-    });
-    scrollBtn.onclick = toggleScroll;
-
-    // Effects Logic
-    let effectInterval = null;
-    let thunderInterval = null;
-    const startEffect = (type) => {
-        if (effectInterval) clearInterval(effectInterval);
-        if (thunderInterval) clearInterval(thunderInterval);
-        const effectLayer = document.getElementById('u-effect-layer');
-        effectLayer.innerHTML = '';
-        if (type === 'none') return;
-
-        const symbols = {
-            magic: '✨', cosmic: '🌌', hearts: '❤️', gold: '💰', sakura: '🌸', romance: '❄️',
-            action: '🔥', matrix: '0', storm: '❄️'
-        };
-
-        effectInterval = setInterval(() => {
-            const p = document.createElement('div');
-            let symbol = symbols[type];
-            if (type === 'matrix') symbol = Math.random() > 0.5 ? '1' : '0';
-
-            p.innerText = symbol;
-            let animation = type === 'action' ? 'rise' : 'fall';
-            if (type === 'matrix') animation = 'matrix-fall';
-
-            p.style.cssText = `
-                position:absolute; left:${Math.random()*100}%; top:${animation === 'rise' ? '105%' : '-50px'};
-                font-size:${Math.random()*20+10}px; opacity:${Math.random()*0.6+0.4}; color:${type==='matrix'?'#0f0':''};
-                user-select:none; pointer-events:none; animation: ${animation} ${Math.random()*3+3}s linear forwards;
-            `;
-            effectLayer.appendChild(p);
-            setTimeout(() => p.remove(), 6000);
-        }, type === 'matrix' ? 100 : 300);
-
-        if (type === 'storm') {
-            thunderInterval = setInterval(() => {
-                if (Math.random() > 0.96) {
-                    const flash = document.createElement('div');
-                    flash.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.15); z-index:10000000; pointer-events:none;';
-                    document.body.appendChild(flash);
-                    setTimeout(() => flash.remove(), 100);
-                }
-            }, 500);
-        }
-        chrome.storage.local.set({ savedEffect: type });
-    };
-    document.getElementById('effect-select').onchange = (e) => startEffect(e.target.value);
-
-    // Theme Logic
-    const updateTheme = (type) => {
-        const bgLayer = document.getElementById('u-bg-layer');
-        const themes = {
-            default: 'linear-gradient(to bottom, #0a0514, #130a2a)',
-            black: '#000',
-            royal: 'linear-gradient(to bottom, #2a0a13, #4d1d2b)',
-            frost: 'linear-gradient(to bottom, #f0f4f8, #d9e2ec)',
-            art: `url('${chrome.runtime.getURL('assets/bg.png')}') center/cover fixed no-repeat`,
-            art2: `url('${chrome.runtime.getURL('assets/bg2.png')}') center/cover fixed no-repeat`,
-            manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}') center/cover fixed no-repeat` : 'linear-gradient(to bottom, #0a0514, #130a2a)'
-        };
-        bgLayer.style.background = themes[type] || themes.default;
-        bgLayer.style.backgroundSize = 'cover';
-        bgLayer.style.backgroundPosition = 'center';
-        chrome.storage.local.set({ savedTheme: type });
-    };
-    document.getElementById('theme-select').onchange = (e) => updateTheme(e.target.value);
-
-    // Download Logic
-    async function download(type) {
-        const msg = document.getElementById('loader-msg');
-        msg.innerText = "Initializing Download...";
-        msg.style.display = 'block';
-        try {
-            if (type === 'zip') {
-                const zip = new JSZip();
-                const folder = zip.folder(`Chapter_${chapterSlug}`);
-                for (let i = 0; i < imageUrls.length; i++) {
-                    msg.innerText = `ZIP: Fetching Image ${i+1}/${imageUrls.length}`;
-                    try {
-                        const r = await fetch(imageUrls[i]);
-                        if (!r.ok) continue;
-                        const b = await r.blob();
-                        folder.file(`image_${(i+1).toString().padStart(3,'0')}.jpg`, b);
-                    } catch(e) {}
-                }
-                msg.innerText = "Generating ZIP...";
-                const content = await zip.generateAsync({type:"blob"});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(content);
-                a.download = `Chapter_${chapterSlug}.zip`;
-                a.click();
-            } else {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF();
-                for (let i = 0; i < imageUrls.length; i++) {
-                    msg.innerText = `PDF: Fetching Image ${i+1}/${imageUrls.length}`;
-                    try {
-                        const r = await fetch(imageUrls[i]);
-                        if (!r.ok) continue;
-                        const b = await r.blob();
-                        const data = await new Promise(res => {
-                            const reader = new FileReader();
-                            reader.onload = () => res(reader.result);
-                            reader.readAsDataURL(b);
-                        });
-                        if (i > 0) pdf.addPage();
-                        const pW = pdf.internal.pageSize.getWidth(), pH = pdf.internal.pageSize.getHeight();
-                        const imgProps = pdf.getImageProperties(data);
-                        const ratio = imgProps.width / imgProps.height;
-                        let finalW = pW, finalH = pW / ratio;
-                        if (finalH > pH) { finalH = pH; finalW = pH * ratio; }
-                        pdf.addImage(data, 'JPEG', (pW-finalW)/2, (pH-finalH)/2, finalW, finalH);
-                    } catch(e) {}
-                }
-                msg.innerText = "Saving PDF...";
-                pdf.save(`Chapter_${chapterSlug}.pdf`);
+        if (!images.length) images = Array.from(document.querySelectorAll('.wp-manga-chapter-img, .read-container img')).map(i => i.src || i.dataset.src).filter(Boolean);
+        if (!images.length) {
+            const base = "https://utoon.net/wp-content/uploads/WP-manga/data";
+            for (let i=1; i<=100; i++) {
+                const n = i.toString().padStart(2,'0'), n3 = i.toString().padStart(3,'0');
+                ['jpg','webp'].forEach(ext => { images.push(`${base}/${mSlug}/${cSlug}/${n}.${ext}`); images.push(`${base}/${mSlug}/${cSlug}/${n3}.${ext}`); });
             }
-            msg.innerText = "Download Complete!";
-        } catch (e) {
-            msg.innerText = "Error: " + e.message;
-            console.error(e);
         }
-        setTimeout(() => msg.style.display = 'none', 3000);
-    }
-    document.getElementById('btn-zip').onclick = () => download('zip');
-    document.getElementById('btn-pdf').onclick = () => download('pdf');
 
-    // Restore Settings
-    if (storageData.savedTheme) {
-        document.getElementById('theme-select').value = storageData.savedTheme;
-        updateTheme(storageData.savedTheme);
+        const coverImg = document.querySelector('meta[property="og:image"]')?.content || '';
+
+        const readerHTML = `
+            <div id="u-reader-wrap" style="background:#0a0514; color:#e2d9f3; min-height:100vh; font-family:system-ui, -apple-system, sans-serif; display:flex; flex-direction:column; align-items:center; position:fixed; inset:0; z-index:2147483647; overflow-y:auto; scroll-behavior:smooth;">
+                <div id="u-bg" style="position:fixed; inset:0; z-index:-1; transition:0.5s;"></div>
+                <div id="u-fx" style="position:fixed; inset:0; pointer-events:none; z-index:1000000; overflow:hidden;"></div>
+
+                <div id="u-side" style="position:fixed; top:0; left:-320px; width:300px; height:100%; background:rgba(15,10,35,0.98); border-right:3px solid #7c3aed; transition:0.4s; z-index:10000002; overflow-y:auto; padding:20px; box-shadow:5px 0 30px #000; backdrop-filter:blur(15px);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #7c3aed44; padding-bottom:15px; margin-bottom:15px;">
+                        <h3 style="color:#7c3aed; margin:0;">CHAPTERS</h3>
+                        <button id="u-side-close" style="background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
+                    </div>
+                    <div id="u-ch-list"></div>
+                </div>
+
+                <div id="u-head" style="position:sticky; top:0; width:100%; background:rgba(10,5,25,0.9); backdrop-filter:blur(12px); padding:10px; display:flex; justify-content:center; align-items:center; gap:10px; border-bottom:2px solid #7c3aed; z-index:10000001; box-shadow:0 5px 15px rgba(0,0,0,0.5);">
+                    <button id="u-menu-btn" class="u-btn">☰</button>
+                    <div style="display:flex; gap:4px;">
+                        <button id="u-prev-btn" class="u-btn" style="background:#475569;">PREV</button>
+                        <button id="u-next-btn" class="u-btn">NEXT</button>
+                    </div>
+                    <select id="u-theme-opt" class="u-sel">
+                        <option value="default">Purple</option>
+                        <option value="black">Black</option>
+                        <option value="manga">Manga</option>
+                        <option value="frost">Frost</option>
+                    </select>
+                    <select id="u-fx-opt" class="u-sel">
+                        <option value="none">No FX</option>
+                        <option value="magic">Magic</option>
+                        <option value="storm">Storm</option>
+                        <option value="sakura">Sakura</option>
+                        <option value="matrix">Matrix</option>
+                        <option value="romance">Romance</option>
+                    </select>
+                    <button id="u-zip-btn" class="u-btn" style="background:#059669;">ZIP</button>
+                    <button id="u-pdf-btn" class="u-btn" style="background:#dc2626;">PDF</button>
+                    <button id="u-exit-btn" class="u-btn" style="background:#94a3b8;">EXIT</button>
+                </div>
+
+                <div id="u-img-box" style="max-width:900px; width:100%; margin:20px 0; background:rgba(0,0,0,0.8); border-radius:12px; overflow:hidden; box-shadow:0 0 60px #000;">
+                    ${images.map(s => `<img src="${s}" style="width:100%; display:block;" onerror="this.remove()">`).join('')}
+                    <div style="padding:40px; display:flex; justify-content:center; gap:20px; background:#130a2a; border-top:1px solid #7c3aed44;">
+                        <button id="u-foot-prev" class="u-btn-lg" style="background:#475569;">PREVIOUS CHAPTER</button>
+                        <button id="u-foot-next" class="u-btn-lg">NEXT CHAPTER</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                #u-reader-wrap::-webkit-scrollbar { width: 8px; }
+                #u-reader-wrap::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+                .u-btn { background:#7c3aed; color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-weight:bold; transition:0.2s; }
+                .u-btn:hover { transform:translateY(-1px); filter:brightness(1.1); }
+                .u-btn-lg { background:#7c3aed; color:white; border:none; padding:15px 30px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:16px; transition:0.3s; }
+                .u-btn-lg:hover { transform:scale(1.05); }
+                .u-sel { background:#1a1333; color:white; border:1px solid #7c3aed; border-radius:6px; padding:6px; outline:none; }
+                .u-item { padding:12px; border-bottom:1px solid #7c3aed22; cursor:pointer; transition:0.2s; color:#e2d9f3; }
+                .u-item:hover { background:#7c3aed33; padding-left:20px; }
+                .u-item.active { background:#7c3aed; color:white; font-weight:bold; }
+                @keyframes u-fall { to { transform:translateY(110vh) rotate(360deg); } }
+                @keyframes u-matrix { to { transform:translateY(110vh); opacity:0; } }
+            </style>
+        `;
+
+        document.body.insertAdjacentHTML('afterbegin', readerHTML);
+        document.body.style.overflow = 'hidden';
+
+        // --- Interaction Logic ---
+        const side = document.getElementById('u-side');
+        document.getElementById('u-menu-btn').onclick = () => side.style.left = '0';
+        document.getElementById('u-side-close').onclick = () => side.style.left = '-320px';
+
+        allChapters.forEach(ch => {
+            const d = document.createElement('div');
+            d.className = 'u-item' + (ch.slug === cSlug ? ' active' : '');
+            d.innerText = ch.nombre;
+            d.onclick = () => window.location.href = window.location.origin + '/manga/' + mSlug + '/' + ch.slug + '/';
+            document.getElementById('u-ch-list').appendChild(d);
+        });
+
+        const goNext = () => nextUrl && (window.location.href = nextUrl);
+        const goPrev = () => prevUrl && (window.location.href = prevUrl);
+        document.getElementById('u-next-btn').onclick = document.getElementById('u-foot-next').onclick = goNext;
+        document.getElementById('u-prev-btn').onclick = document.getElementById('u-foot-prev').onclick = goPrev;
+        document.getElementById('u-exit-btn').onclick = () => window.location.href = window.location.origin + '/manga/' + mSlug + '/';
+
+        if (!nextUrl) { document.getElementById('u-next-btn').style.opacity = '0.4'; document.getElementById('u-foot-next').style.display='none'; }
+        if (!prevUrl) { document.getElementById('u-prev-btn').style.opacity = '0.4'; document.getElementById('u-foot-prev').style.display='none'; }
+
+        // Themes
+        const updateT = (v) => {
+            const th = {
+                default: 'linear-gradient(to bottom, #0a0514, #130a2a)',
+                black: '#000',
+                manga: coverImg ? `linear-gradient(rgba(10,5,20,0.85), rgba(10,5,20,0.85)), url('${coverImg}') center/cover fixed no-repeat` : '#000',
+                frost: 'linear-gradient(135deg, #0f172a, #1e293b)'
+            };
+            document.getElementById('u-bg').style.background = th[v] || th.default;
+            setStorage({ u_theme: v });
+        };
+        document.getElementById('u-theme-opt').onchange = (e) => updateT(e.target.value);
+
+        // Effects
+        let fxI;
+        const startFX = (t) => {
+            if (fxI) clearInterval(fxI);
+            const l = document.getElementById('u-fx'); l.innerHTML = '';
+            if (t === 'none') return;
+            const syms = { magic: '✨', storm: '⚡', sakura: '🌸', matrix: '0', romance: '❄️' };
+            fxI = setInterval(() => {
+                const p = document.createElement('div');
+                let s = syms[t]; if (t==='matrix') s = Math.random()>0.5?'1':'0';
+                p.innerText = s;
+                let an = t==='matrix'?'u-matrix':'u-fall', du = Math.random()*3+3;
+                p.style.cssText = `position:absolute; left:${Math.random()*100}%; top:-50px; font-size:${Math.random()*15+15}px; opacity:0.8; color:${t==='matrix'?'#0f0':''}; animation:${an} ${du}s linear forwards;`;
+                l.appendChild(p); setTimeout(() => p.remove(), du*1000);
+            }, t==='matrix'?80:350);
+            setStorage({ u_fx: t });
+        };
+        document.getElementById('u-fx-opt').onchange = (e) => startFX(e.target.value);
+
+        // Downloads
+        const handleDL = async (m) => {
+            const b = document.getElementById(m==='zip'?'u-zip-btn':'u-pdf-btn'), old = b.innerText; b.innerText = "...";
+            try {
+                if (m==='zip' && window.JSZip) {
+                    const z = new JSZip(), f = z.folder(`Chapter_${cSlug}`);
+                    for (let i=0; i<images.length; i++) { try { const r = await fetch(images[i]); const bl = await r.blob(); f.file(`p${i+1}.jpg`, bl); } catch(e) {} }
+                    const c = await z.generateAsync({type:"blob"});
+                    const link = document.createElement('a'); link.href = URL.createObjectURL(c); link.download = `Chapter_${cSlug}.zip`; link.click();
+                } else if (m==='pdf' && window.jspdf) {
+                    const { jsPDF } = window.jspdf, pdf = new jsPDF();
+                    for (let i=0; i<images.length; i++) {
+                        try {
+                            const r = await fetch(images[i]); const bl = await r.blob();
+                            const d = await new Promise(res => { const fr = new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(bl); });
+                            if (i>0) pdf.addPage(); pdf.addImage(d, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+                        } catch(e) {}
+                    }
+                    pdf.save(`Chapter_${cSlug}.pdf`);
+                }
+            } catch(e) { alert("DL Error: " + e.message); }
+            b.innerText = old;
+        };
+        document.getElementById('u-zip-btn').onclick = () => handleDL('zip');
+        document.getElementById('u-pdf-btn').onclick = () => handleDL('pdf');
+
+        const saved = await getStorage(['u_theme', 'u_fx']);
+        if (saved.u_theme) { document.getElementById('u-theme-opt').value = saved.u_theme; updateT(saved.u_theme); }
+        if (saved.u_fx) { document.getElementById('u-fx-opt').value = saved.u_fx; startFX(saved.u_fx); }
     }
-    if (storageData.savedEffect) {
-        document.getElementById('effect-select').value = storageData.savedEffect;
-        startEffect(storageData.savedEffect);
-    }
+
+    const obs = new MutationObserver(() => injectMangaLinkFixes());
+    obs.observe(document.body, { childList: true, subtree: true });
+    injectMangaLinkFixes();
+    initReader();
 })();
