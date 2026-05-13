@@ -1,0 +1,34 @@
+{
+  "name": "utoon-ultimate-pro",
+  "productName": "Utoon Ultimate Pro",
+  "version": "3.0.0",
+  "description": "Utoon Ultimate Pro Desktop Reader v3.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "build": "npm install && npm run dist"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.4.0"
+  },
+  "build": {
+    "appId": "com.utoon.desktop",
+    "win": {
+      "target": "portable",
+      "icon": "icon.png"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "reader_logic.js",
+      "fix_links.js",
+      "ui_unlocker.js",
+      "jszip.min.js",
+      "jspdf.min.js"
+    ]
+  }
+}

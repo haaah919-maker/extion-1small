@@ -1,0 +1,10 @@
+{
+  "appId": "com.utoon.app",
+  "appName": "Utoon Pro Mobile",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://utoon.net",
+    "allowNavigation": ["utoon.net"]
+  }
+}
