@@ -1,13 +1,21 @@
-# How to Build the .exe (Windows)
+# Utoon Desktop Build Instructions
 
-1. Open your terminal (Command Prompt or PowerShell).
-2. Navigate to the electron folder:
-   ```bash
-   cd Utoon_Mobile_App/electron
-   ```
-3. Run the following commands:
+## Prerequisites
+- Node.js installed.
+- Git (optional).
+
+## Build Steps
+1. Open terminal in this folder (`Utoon_Mobile_App/electron`).
+2. Install dependencies:
    ```bash
    npm install
+   ```
+3. Build the final executable:
+   ```bash
    npm run dist
    ```
-4. Once finished, you will find the portable `.exe` file in the `Utoon_Mobile_App/electron/dist/` folder.
+4. Locate your file:
+   The portable `.exe` will be generated in: `Utoon_Mobile_App/electron/dist/Utoon Ultimate Pro 2.1.0.exe`.
+
+## Security
+This build process includes a `javascript-obfuscator` step that protects your `reader_logic.js` file from being read or modified by users.

@@ -1,9 +1,11 @@
-# Changelog - Utoon Ultimate Pro Final
+# Changelog - Utoon Ultimate Pro Unified v2.1
 
-## [2.0] - 2026-05-11
-### Merged
-- Consolidated all extension versions (`Utoon_Ultimate_Pro_last` as base).
-- Integrated advanced navigation and theme logic.
-- Merged `fix_links` improvements and auto-injection logic.
-- Cleaned up redundant version folders.
-- Added `AGENTS.md` for project documentation.
+## [2.1] - 2026-05-13
+### Unified Master Release
+- Merged all logic (Reader, Effects, Themes, Manga Page Fixes, Bulk Download) into a single `reader_logic.js`.
+- Implemented Supabase-backed License System (Premium vs Free).
+- Added Ad Banners and Pop-under for Free users.
+- Implemented Chapter Limits (2/day for Free users) with permanent local unlock.
+- Fixed Zoom: 10% min, smooth centering, and CTRL+Wheel support.
+- Added High-Quality Fire effect and centered visual effects.
+- Synced all features to Extension, Mobile, and PC platforms.

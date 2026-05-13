@@ -2,23 +2,30 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+app.commandLine.appendSwitch('disable-gpu'); // Fix for the "Access Denied" error
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280, height: 800,
-    webPreferences: { nodeIntegration: false, contextIsolation: true }
+    webPreferences: { nodeIntegration: false, contextIsolation: false } // Set contextIsolation to false for login.html to work easily
   });
 
-  win.loadURL('https://utoon.net');
+  const assetsDir = path.join(__dirname, '../assets');
+
+  // Show login screen if no license is stored
+  win.loadFile(path.join(assetsDir, 'login.html'));
 
   win.webContents.on('did-finish-load', () => {
     const url = win.webContents.getURL();
-    const assetsDir = path.join(__dirname, '../assets');
+    if (url.startsWith('file://')) return;
 
-    // Sequential Injection of Libraries + Unified Logic
+    // Inject Unified Script + Libraries on every page load
     const scripts = ['jspdf.min.js', 'jszip.min.js', 'reader_logic.js'];
     scripts.forEach(file => {
-      const content = fs.readFileSync(path.join(assetsDir, file), 'utf8');
-      win.webContents.executeJavaScript(content);
+      const p = path.join(assetsDir, file);
+      if (fs.existsSync(p)) {
+        win.webContents.executeJavaScript(fs.readFileSync(p, 'utf8'));
+      }
     });
   });
 }

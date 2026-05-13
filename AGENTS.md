@@ -1,27 +1,37 @@
 # Utoon Ultimate Pro Unified v2.1
 
-## Project Structure
-- **Utoon_Ultimate_Pro_Final/**: Consolidated Chrome Extension.
-  - `reader_logic.js`: Unified core script (Reader + Effects + Themes + Navigation).
-  - `fix_links.js`: Content script for unlocking links on manga pages.
-- **Utoon_Mobile_App/**: Capacitor Mobile App and Electron Desktop App.
-  - `electron/`: PC (Windows) source.
-  - `android/`: Mobile (Android) source.
+## Project Overview
+This project provides a unified reading experience for [utoon.net](https://utoon.net) across Chrome Extension, Windows Desktop, and Android Mobile platforms. All logic is consolidated into a single master script (`reader_logic.js`).
 
-## Features
-- Functional CHAPTERS button with side panel.
-- Functional NEXT/PREV and EXIT buttons.
-- High-quality effects: Matrix, Magic, Storm, Sakura, Romance.
-- Themes: Purple, Black, Manga Cover, Frost.
-- Integrated high-speed ZIP/PDF download.
-- Universal storage (Extension & App support).
+## File Structure
+- **Utoon_Ultimate_Pro_Final/**: Chrome Extension.
+  - `manifest.json`: Version 2.1, Broad Injection.
+  - `background.js`: Handles script injection on every utoon.net page.
+  - `reader_logic.js`: **Unified Master Logic** (Reader, Effects, Themes, Manga Fixes, Bulk Download, Ads, Licensing).
+- **Utoon_Mobile_App/**: Capacitor Mobile & Electron Desktop.
+  - `electron/`: Windows App source.
+    - `src/index.js`: Entry point, shows login screen, injects master logic.
+    - `assets/login.html`: Premium activation screen.
+    - `package.json`: Includes `electron-builder` and `javascript-obfuscator`.
+  - `android/`: Mobile App source.
+    - `MainActivity.java`: Injects master logic into Android WebView.
 
-## Building PC Version
+## Features & Logic
+- **Premium System**: Powered by Supabase. Free users have a 2-chapter/day limit and see ads.
+- **Bulk Download**: Available on Manga main pages. Supports ZIP/PDF.
+- **Ghost Buttons**: Auto-fix locked links on Manga lists.
+- **Enhanced UI**: Custom Zoom (10%-300%), centering, and high-quality FX (Matrix, Fire, etc.).
+
+## Build Instructions
+### PC (Windows)
 1. `cd Utoon_Mobile_App/electron`
 2. `npm install`
-3. `npm run dist` (portable .exe in dist/)
+3. `npm run dist` -> Generates obfuscated portable `.exe` in `dist/`.
 
-## Building Mobile Version
+### Mobile (Android)
 1. `cd Utoon_Mobile_App`
 2. `npx cap sync android`
-3. Build in Android Studio.
+3. Open in Android Studio and Build APK.
+
+### Chrome Extension
+1. Load `Utoon_Ultimate_Pro_Final` as unpacked extension.
