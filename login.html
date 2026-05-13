@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Utoon Ultimate Pro</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #0a0514; color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; margin: 0; overflow: hidden;
+            -webkit-app-region: drag;
+        }
+        .card {
+            background: linear-gradient(135deg, #130a2a, #1a0d35);
+            padding: 32px 28px; border-radius: 18px;
+            border: 1px solid #7c3aed; text-align: center;
+            width: 340px; -webkit-app-region: no-drag;
+            box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 40px rgba(124,58,237,.15);
+        }
+        .logo { font-size: 40px; margin-bottom: 4px; }
+        h2 { color: #a78bfa; margin: 0 0 4px; font-size: 22px; letter-spacing: .5px; }
+        .subtitle { color: #6b7280; font-size: 13px; margin: 0 0 24px; }
+        .version-badge {
+            display: inline-block; background: rgba(168,85,247,.15);
+            color: #a855f7; border: 1px solid rgba(168,85,247,.3);
+            padding: 3px 10px; border-radius: 20px; font-size: 11px;
+            font-weight: 600; margin-bottom: 20px;
+        }
+        input {
+            width: 100%; padding: 12px 14px; margin-bottom: 6px;
+            background: rgba(10,5,20,.8); border: 1px solid #5b21b6;
+            color: white; border-radius: 8px; font-size: 14px;
+            outline: none; letter-spacing: .5px; transition: .2s;
+        }
+        input:focus { border-color: #a855f7; box-shadow: 0 0 12px rgba(168,85,247,.25); }
+        input::placeholder { color: #4b5563; letter-spacing: normal; }
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: white; border: none; padding: 13px 20px;
+            border-radius: 8px; cursor: pointer; width: 100%;
+            font-weight: 700; font-size: 15px; transition: .25s;
+            margin-bottom: 10px; letter-spacing: .3px;
+        }
+        .btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .btn-free {
+            background: transparent; color: #9ca3af;
+            border: 1px solid #374151; padding: 11px 20px;
+            border-radius: 8px; cursor: pointer; width: 100%;
+            font-size: 13px; transition: .2s;
+        }
+        .btn-free:hover { border-color: #6b7280; color: #e5e7eb; }
+        .error-msg { color: #f87171; font-size: 12px; min-height: 18px; margin: 0 0 10px; }
+        .success-msg { color: #4ade80; font-size: 12px; min-height: 18px; margin: 0 0 10px; }
+        .divider {
+            display: flex; align-items: center; gap: 10px;
+            color: #374151; font-size: 12px; margin: 14px 0;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: #1f2937;
+        }
+        .features {
+            display: flex; gap: 8px; justify-content: center;
+            flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .feature-chip {
+            background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.25);
+            color: #a78bfa; padding: 4px 10px; border-radius: 20px; font-size: 11px;
+        }
+        .close-btn {
+            position: fixed; top: 10px; right: 15px; color: #4b5563;
+            cursor: pointer; font-size: 22px; -webkit-app-region: no-drag;
+            transition: .2s; line-height: 1;
+        }
+        .close-btn:hover { color: #9ca3af; }
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin .6s linear infinite;
+            vertical-align: middle; margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Status panel (shown after successful activation) */
+        #status-panel {
+            display: none; background: rgba(74,222,128,.08);
+            border: 1px solid rgba(74,222,128,.3); border-radius: 10px;
+            padding: 16px; margin-bottom: 16px; text-align: center;
+        }
+        #status-panel.vip { background: rgba(168,85,247,.1); border-color: rgba(168,85,247,.4); }
+        #status-panel .status-icon { font-size: 32px; display: block; margin-bottom: 6px; }
+        #status-panel .status-text { font-size: 13px; color: #e2d9f3; }
+        #status-panel .status-sub  { font-size: 12px; color: #9ca3af; margin-top: 3px; }
+    </style>
+</head>
+<body>
+    <span class="close-btn" id="close-btn">×</span>
+
+    <div class="card">
+        <div class="logo">👑</div>
+        <h2>Utoon Ultimate Pro</h2>
+        <p class="subtitle">The best manga reader for utoon.net</p>
+        <div class="version-badge" id="version-badge">v3.0.0</div>
+
+        <div class="features">
+            <span class="feature-chip">🚫 No Ads (VIP)</span>
+            <span class="feature-chip">♾️ Unlimited Chapters</span>
+            <span class="feature-chip">📦 Download ZIP/PDF</span>
+            <span class="feature-chip">✨ Visual Effects</span>
+        </div>
+
+        <!-- Status Panel (shown when already activated) -->
+        <div id="status-panel">
+            <span class="status-icon" id="status-icon">👑</span>
+            <div class="status-text" id="status-text"></div>
+            <div class="status-sub"  id="status-sub"></div>
+        </div>
+
+        <input type="text" id="key-input" placeholder="License key: UTOON-XXXX-YYYY-ZZZZ"
+               oninput="this.value = this.value.toUpperCase()">
+        <div class="error-msg"   id="error-msg"></div>
+
+        <button class="btn-primary" id="activate-btn">⚡ Activate Premium</button>
+        <div class="divider">or</div>
+        <button class="btn-free" id="skip-btn">Continue with Free Plan (2 chapters/day)</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        // ── Show existing status on open ───────────────────────────────────
+        const isPremium  = localStorage.getItem('isPremium') === 'true';
+        const expiresAt  = localStorage.getItem('u_expires_at');
+        const daysLeft   = parseInt(localStorage.getItem('u_days_left') || '0');
+        const panel      = document.getElementById('status-panel');
+        const statusIcon = document.getElementById('status-icon');
+        const statusText = document.getElementById('status-text');
+        const statusSub  = document.getElementById('status-sub');
+        const keyInput   = document.getElementById('key-input');
+
+        if (isPremium && expiresAt && new Date(expiresAt) > new Date()) {
+            panel.style.display = 'block';
+            panel.classList.add('vip');
+            statusIcon.textContent = '👑';
+            statusText.textContent = `VIP Active — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+            statusSub.textContent  = `Expires: ${new Date(expiresAt).toLocaleDateString()}`;
+            document.getElementById('activate-btn').textContent = '🔄 Replace License Key';
+        }
+
+        // Inject version badge from package.json (sent via preload if needed)
+        // Using static value set in main.js via executeJavaScript if needed
+        if (window.APP_VERSION) {
+            document.getElementById('version-badge').textContent = 'v' + window.APP_VERSION;
+        }
+
+        // ── Activate ────────────────────────────────────────────────────────
+        document.getElementById('activate-btn').onclick = () => {
+            const key = keyInput.value.trim().toUpperCase();
+            const err = document.getElementById('error-msg');
+            if (!key) { err.textContent = 'Please enter your license key.'; return; }
+            const btn = document.getElementById('activate-btn');
+            btn.innerHTML = '<span class="spinner"></span>Verifying…';
+            btn.disabled  = true;
+            err.textContent = '';
+            ipcRenderer.send('verify-key', key);
+        };
+
+        // ── IPC: auth result ────────────────────────────────────────────────
+        ipcRenderer.on('auth-result', (event, result) => {
+            const btn = document.getElementById('activate-btn');
+            const err = document.getElementById('error-msg');
+            btn.disabled = false;
+
+            if (result.success) {
+                btn.innerHTML = '✅ Activated!';
+                err.style.color = '#4ade80';
+                err.textContent = '✅ ' + result.message;
+                setTimeout(() => ipcRenderer.send('auth-success'), 1500);
+            } else {
+                btn.innerHTML = '⚡ Activate Premium';
+                err.style.color = '#f87171';
+                err.textContent = '❌ ' + result.message;
+            }
+        });
+
+        // ── Skip ─────────────────────────────────────────────────────────────
+        document.getElementById('skip-btn').onclick = () => {
+            ipcRenderer.send('skip-auth');
+        };
+
+        // ── Close ─────────────────────────────────────────────────────────────
+        document.getElementById('close-btn').onclick = () => {
+            ipcRenderer.send('skip-auth');
+        };
+
+        // ── Enter key submit ──────────────────────────────────────────────────
+        document.getElementById('key-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('activate-btn').click();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #0a0514; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; -webkit-app-region: drag; }
+        .card { background: #130a2a; padding: 30px; border-radius: 15px; border: 1px solid #7c3aed; text-align: center; width: 300px; -webkit-app-region: no-drag; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #a78bfa; margin-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin: 20px 0; background: #0a0514; border: 1px solid #7c3aed; color: white; border-radius: 5px; box-sizing: border-box; outline: none; }
+        input:focus { border-color: #a855f7; box-shadow: 0 0 10px rgba(168,85,247,0.3); }
+        button { background: #7c3aed; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #a855f7; transform: translateY(-2px); }
+        .skip { margin-top: 20px; color: #a78bfa; font-size: 13px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
+        .skip:hover { opacity: 1; }
+        .close-btn { position: absolute; top: 10px; right: 15px; color: #666; cursor: pointer; font-size: 20px; -webkit-app-region: no-drag; }
+    </style>
+</head>
+<body>
+    <div class="close-btn" onclick="window.close()">×</div>
+    <div class="card">
+        <h2>Utoon Pro</h2>
+        <p style="font-size: 14px; opacity: 0.8;">Enter your license key to unlock Premium features.</p>
+        <input type="text" id="key" placeholder="XXXX-XXXX-XXXX">
+        <button id="activate-btn">Activate Premium</button>
+        <div class="skip" id="skip-btn">Continue with Free version</div>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        document.getElementById('activate-btn').onclick = () => {
+            const key = document.getElementById('key').value;
+            if(!key) return alert('Please enter a key');
+            ipcRenderer.send('verify-key', key);
+        };
+        document.getElementById('skip-btn').onclick = () => {
+            ipcRenderer.send('skip-auth');
+        };
+    </script>
+</body>
+</html>

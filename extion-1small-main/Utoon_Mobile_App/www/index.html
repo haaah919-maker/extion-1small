@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Utoon Ultimate Pro Mobile</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; background: #0a0514; font-family: 'Segoe UI', sans-serif; }
+        #app-bar {
+            height: 50px;
+            background: linear-gradient(135deg, #130a2a, #1a1040);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            box-shadow: 0 2px 15px rgba(124,58,237,0.3);
+            z-index: 100;
+            position: relative;
+            border-bottom: 2px solid #7c3aed;
+        }
+        .nav-btn {
+            background: rgba(124, 58, 237, 0.15);
+            border: 1px solid rgba(124, 58, 237, 0.4);
+            color: #d8b4fe;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.3s;
+        }
+        .nav-btn:active { background: #7c3aed; color: #fff; }
+        .app-title {
+            font-weight: 700;
+            color: #a855f7;
+            margin-right: auto;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(168,85,247,0.3);
+        }
+        #webview-container { height: calc(100% - 50px); width: 100%; }
+        #utoon-frame { width: 100%; height: 100%; border: none; }
+        #loading {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0514;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 999; color: #a855f7; font-size: 18px;
+            flex-direction: column; gap: 15px;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(168,85,247,0.2);
+            border-top-color: #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <span>Utoon Pro Loading...</span>
+    </div>
+    <div id="app-bar">
+        <button class="nav-btn" id="back-btn">← رجوع</button>
+        <button class="nav-btn" id="refresh-btn">↻</button>
+        <button class="nav-btn" id="home-btn">🏠</button>
+        <span class="app-title">Utoon Pro 📚</span>
+    </div>
+    <div id="webview-container">
+        <iframe id="utoon-frame" src="https://utoon.net" 
+            sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"
+            allow="fullscreen"></iframe>
+    </div>
+    <script>
+        const frame = document.getElementById('utoon-frame');
+        const loading = document.getElementById('loading');
+        
+        frame.onload = () => {
+            loading.style.display = 'none';
+        };
+        
+        document.getElementById('back-btn').onclick = () => {
+            try { frame.contentWindow.history.back(); } catch(e) { frame.src = 'https://utoon.net'; }
+        };
+        document.getElementById('refresh-btn').onclick = () => {
+            loading.style.display = 'flex';
+            frame.src = frame.src;
+        };
+        document.getElementById('home-btn').onclick = () => {
+            loading.style.display = 'flex';
+            frame.src = 'https://utoon.net';
+        };
+    </script>
+</body>
+</html>
