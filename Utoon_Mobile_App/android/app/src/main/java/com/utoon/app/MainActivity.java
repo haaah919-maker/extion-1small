@@ -18,25 +18,18 @@ public class MainActivity extends BridgeActivity {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            if (url != null && url.contains("/chapter-")) {
-                injectReader(view);
-            }
+            // Sequentially inject libraries then the master logic
+            injectScript(view, "assets/jspdf.min.js");
+            injectScript(view, "assets/jszip.min.js");
+            injectScript(view, "assets/reader_logic.js");
         }
 
-        private void injectReader(WebView view) {
-            injectAssetScript(view, "assets/jspdf.min.js");
-            injectAssetScript(view, "assets/jszip.min.js");
-            injectAssetScript(view, "assets/reader_logic.js");
-        }
-
-        private void injectAssetScript(WebView view, String assetPath) {
+        private void injectScript(WebView view, String path) {
             try {
-                Scanner scanner = new Scanner(getAssets().open("public/" + assetPath)).useDelimiter("\\A");
-                String scriptBody = scanner.hasNext() ? scanner.next() : "";
-                view.evaluateJavascript(scriptBody, null);
-            } catch (Exception e) {
-                android.util.Log.e("UtoonInjection", "Failed to inject: " + assetPath, e);
-            }
+                Scanner s = new Scanner(getAssets().open("public/" + path)).useDelimiter("\\A");
+                String code = s.hasNext() ? s.next() : "";
+                view.evaluateJavascript(code, null);
+            } catch (Exception e) {}
         }
     }
 }

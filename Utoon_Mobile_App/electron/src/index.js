@@ -2,49 +2,33 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+app.commandLine.appendSwitch('disable-gpu'); // Fix for the "Access Denied" error
+
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
-    }
+    width: 1280, height: 800,
+    webPreferences: { nodeIntegration: false, contextIsolation: false } // Set contextIsolation to false for login.html to work easily
   });
 
-  // Load Utoon
-  win.loadURL('https://utoon.net');
+  const assetsDir = path.join(__dirname, '../assets');
 
-  // URL Listener for Injection
+  // Show login screen if no license is stored
+  win.loadFile(path.join(assetsDir, 'login.html'));
+
   win.webContents.on('did-finish-load', () => {
     const url = win.webContents.getURL();
-    if (url.includes('/chapter-')) {
-      injectReader(win.webContents);
-    }
+    if (url.startsWith('file://')) return;
+
+    // Inject Unified Script + Libraries on every page load
+    const scripts = ['jspdf.min.js', 'jszip.min.js', 'reader_logic.js'];
+    scripts.forEach(file => {
+      const p = path.join(assetsDir, file);
+      if (fs.existsSync(p)) {
+        win.webContents.executeJavaScript(fs.readFileSync(p, 'utf8'));
+      }
+    });
   });
-}
-
-async function injectReader(webContents) {
-  try {
-    const assetsDir = path.join(__dirname, '../assets');
-
-    const jspdf = fs.readFileSync(path.join(assetsDir, 'jspdf.min.js'), 'utf8');
-    const jszip = fs.readFileSync(path.join(assetsDir, 'jszip.min.js'), 'utf8');
-    const readerLogic = fs.readFileSync(path.join(assetsDir, 'reader_logic.js'), 'utf8');
-
-    // Sequential injection
-    await webContents.executeJavaScript(jspdf);
-    await webContents.executeJavaScript(jszip);
-    await webContents.executeJavaScript(readerLogic);
-
-    console.log('Reader injected successfully into Electron window');
-  } catch (err) {
-    console.error('Failed to inject reader:', err);
-  }
 }
 
 app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

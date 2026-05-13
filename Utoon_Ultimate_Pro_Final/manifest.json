@@ -1,33 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Utoon Ultimate Pro Final",
-  "version": "2.0",
-  "description": "Ultimate Reader with Enhanced Navigation, Visual Cues, and Themes.",
+  "name": "Utoon Ultimate Pro Unified",
+  "version": "2.1",
+  "description": "Unified Reader with Effects, Themes, and Cross-Platform Support.",
   "permissions": ["activeTab", "scripting", "tabs", "storage"],
   "host_permissions": ["https://utoon.net/*"],
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://utoon.net/*"],
-      "js": ["fix_links.js"],
-      "run_at": "document_end"
-    }
-  ],
+  "background": { "service_worker": "background.js" },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "128": "icons/icon.png"
-    }
+    "default_icon": { "128": "icons/icon.png" }
   },
-  "icons": {
-    "128": "icons/icon.png"
-  },
+  "icons": { "128": "icons/icon.png" },
   "web_accessible_resources": [
-    {
-      "resources": ["assets/bg.png", "assets/bg2.png"],
-      "matches": ["https://utoon.net/*"]
-    }
+    { "resources": ["assets/*"], "matches": ["https://utoon.net/*"] }
   ]
 }

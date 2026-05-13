@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><style>
+body { background:#0a0514; color:#e2d9f3; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; }
+.card { background:#130a2a; padding:30px; border-radius:15px; border:2px solid #7c3aed; box-shadow:0 0 30px #000; text-align:center; width:300px; }
+input { width:100%; padding:10px; margin:15px 0; border-radius:8px; border:1px solid #7c3aed; background:#0a0514; color:white; text-align:center; box-sizing:border-box; }
+button { background:#7c3aed; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-weight:bold; width:100%; }
+.free-link { margin-top:20px; font-size:12px; opacity:0.6; cursor:pointer; text-decoration:underline; }
+</style></head><body>
+<div class="card">
+    <img src="icon.png" style="width:64px; margin-bottom:10px;">
+    <h2>Utoon Pro</h2>
+    <p style="font-size:14px; opacity:0.8;">Enter License Key to Unlock Premium</p>
+    <input type="text" id="key-input" placeholder="XXXX-XXXX-XXXX">
+    <button id="activate-btn">Activate Premium</button>
+    <div class="free-link" id="free-btn">Continue with Free Version</div>
+</div>
+<script>
+    const SB_URL = "https://zxrgztmwepyqyrkhhtmr.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4cmd6dG13ZXB5cXlya2hodG1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxODc0NjksImV4cCI6MjA5Mzc2MzQ2OX0.dsgkoKciaHo58qfKwbfUYh3-nJFDeFOvTVmnvsrrxRw";
+
+    document.getElementById('activate-btn').onclick = async () => {
+        const key = document.getElementById('key-input').value.trim();
+        if(!key) return alert("Please enter a key");
+
+        try {
+            const res = await fetch(`${SB_URL}/rest/v1/licenses?key=eq.${key}`, { headers: { 'apikey': SB_KEY } });
+            const data = await res.json();
+            if(data.length > 0) {
+                localStorage.setItem('u_license', JSON.stringify(key));
+                window.location.href = 'https://utoon.net';
+            } else { alert("Invalid or Expired Key"); }
+        } catch(e) { alert("Connection Error"); }
+    };
+    document.getElementById('free-btn').onclick = () => {
+        localStorage.removeItem('u_license');
+        window.location.href = 'https://utoon.net';
+    };
+</script>
+</body></html>

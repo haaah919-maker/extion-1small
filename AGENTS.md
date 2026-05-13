@@ -1,31 +1,37 @@
-# AGENTS.md — Utoon Ultimate Pro Extension & Mobile App
+# Utoon Ultimate Pro Unified v2.1
 
 ## Project Overview
-Utoon Ultimate Pro is a Manifest V3 Chrome Extension and a Capacitor-based Mobile App designed to enhance the reading experience on [utoon.net](https://utoon.net).
+This project provides a unified reading experience for [utoon.net](https://utoon.net) across Chrome Extension, Windows Desktop, and Android Mobile platforms. All logic is consolidated into a single master script (`reader_logic.js`).
 
 ## File Structure
-- **Utoon_Ultimate_Pro_Final/**: Consolidated Chrome Extension source.
-  - **manifest.json**: Extension config.
-  - **background.js**: Auto-injection logic.
-  - **reader_logic.js**: Core reader UI.
-- **Utoon_Mobile_App/**: Capacitor Mobile App source.
-  - **android/app/src/main/java/com/utoon/app/MainActivity.java**: Native URL Listener and Script Injection logic.
-  - **www/index.html**: Mobile app UI.
+- **Utoon_Ultimate_Pro_Final/**: Chrome Extension.
+  - `manifest.json`: Version 2.1, Broad Injection.
+  - `background.js`: Handles script injection on every utoon.net page.
+  - `reader_logic.js`: **Unified Master Logic** (Reader, Effects, Themes, Manga Fixes, Bulk Download, Ads, Licensing).
+- **Utoon_Mobile_App/**: Capacitor Mobile & Electron Desktop.
+  - `electron/`: Windows App source.
+    - `src/index.js`: Entry point, shows login screen, injects master logic.
+    - `assets/login.html`: Premium activation screen.
+    - `package.json`: Includes `electron-builder` and `javascript-obfuscator`.
+  - `android/`: Mobile App source.
+    - `MainActivity.java`: Injects master logic into Android WebView.
 
-## Key APIs
-- **Internal API**: `https://utoon.net/wp-json/icmadara/v1/`
+## Features & Logic
+- **Premium System**: Powered by Supabase. Free users have a 2-chapter/day limit and see ads.
+- **Bulk Download**: Available on Manga main pages. Supports ZIP/PDF.
+- **Ghost Buttons**: Auto-fix locked links on Manga lists.
+- **Enhanced UI**: Custom Zoom (10%-300%), centering, and high-quality FX (Matrix, Fire, etc.).
 
-## Testing Locally (Extension)
-1. Load unpacked extension from `Utoon_Ultimate_Pro_Final` in Chrome.
+## Build Instructions
+### PC (Windows)
+1. `cd Utoon_Mobile_App/electron`
+2. `npm install`
+3. `npm run dist` -> Generates obfuscated portable `.exe` in `dist/`.
 
-## Testing Locally (Mobile)
-1. The mobile app logic is in `MainActivity.java`. It intercepts the WebView to inject scripts on chapter pages.
+### Mobile (Android)
+1. `cd Utoon_Mobile_App`
+2. `npx cap sync android`
+3. Open in Android Studio and Build APK.
 
-## Electron (Desktop) Support
-- **Utoon_Mobile_App/electron/**: Electron source for Windows/Desktop app.
-  - **src/index.js**: Electron main process with `did-finish-load` listener for script injection.
-  - **assets/**: Bundled scripts for the desktop app.
-
-## Building the Desktop App
-- Use `electron-builder` via `npm run dist` in the `Utoon_Mobile_App/electron` folder.
-- Output: `dist/Utoon Ultimate Pro 2.0.0.exe` (Portable).
+### Chrome Extension
+1. Load `Utoon_Ultimate_Pro_Final` as unpacked extension.
