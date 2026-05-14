@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Utoon Ultimate Pro Unified",
-  "version": "2.1",
+  "version": "2.2",
   "description": "Unified Reader with Effects, Themes, and Cross-Platform Support.",
   "permissions": ["activeTab", "scripting", "tabs", "storage"],
   "host_permissions": ["https://utoon.net/*"],

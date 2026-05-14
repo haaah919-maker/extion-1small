@@ -1,7 +1,7 @@
 {
   "name": "utoon-pro-desktop",
   "productName": "Utoon Ultimate Pro",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Utoon Ultimate Pro Unified Desktop Reader",
   "main": "src/index.js",
   "scripts": {
